@@ -12,9 +12,10 @@ import {hud,resetHud} from './ui/hud.js';
 import {tutorialBegin,tutorialEnd,tutorialTick} from './ui/tutorial.js';
 import {$} from './util.js';
 import {ctx,cv,resize} from './view.js';
+import {duckMusic,setMusicMode,sfx,soundFrame} from './sound.js';
 export let mode='menu',last=0,tipTimer=0;
 export function show(id){['buildScreen','resultScreen','pauseScreen'].forEach(s=>$(s).classList.toggle('hidden',s!==id));}
-export function setPlayUI(on){['hud','pauseBtn'].forEach(s=>$(s).classList.toggle('hidden',!on));$('touch').classList.toggle('hidden',!(on&&isTouch));$('shootBtn').classList.toggle('hidden',!(build.crossbows>0));}
+export function setPlayUI(on){['hud','pauseBtn','soundBtn'].forEach(s=>$(s).classList.toggle('hidden',!on));$('touch').classList.toggle('hidden',!(on&&isTouch));$('shootBtn').classList.toggle('hidden',!(build.crossbows>0));}
 export function start(){
   sanitize();setPreviewStyle(null);
   newGame();resetHud();mode='play';show(null);setPlayUI(true);resize();
@@ -25,12 +26,13 @@ export function start(){
   tip.classList.remove('hidden');tip.style.opacity=1;clearTimeout(tipTimer);
   tipTimer=setTimeout(()=>{tip.style.opacity=0;setTimeout(()=>tip.classList.add('hidden'),700);},6000);
   tutorialBegin();
+  setMusicMode('battle');duckMusic(false);sfx('launch');
 }
-export function toMenu(){tutorialEnd();mode='menu';setG(null);setPlayUI(false);show('buildScreen');refreshBuild();resize();}
-export function pause(){if(mode!=='play')return;mode='pause';show('pauseScreen');}
+export function toMenu(){tutorialEnd();setMusicMode('menu');duckMusic(false);mode='menu';setG(null);setPlayUI(false);show('buildScreen');refreshBuild();resize();}
+export function pause(){if(mode!=='play')return;mode='pause';show('pauseScreen');duckMusic(true);}
 export let shareText='';
 export function finish(){
-  G.state=G.state==='won'?'wonDone':'lostDone';const won=G.state==='wonDone';
+  G.state=G.state==='won'?'wonDone':'lostDone';const won=G.state==='wonDone';sfx(won?'win':'lose');setMusicMode('menu');duckMusic(false);
   tutorialEnd();mode='result';setPlayUI(false);$('tip').classList.add('hidden');
   const foe=G.foe,pct=Math.round(100*(1-Math.max(0,foe.hp)/foe.max));
   const lines=[[G.duel?`נזק לטירת היריב (${pct}%)`:`נזק לטירה (${pct}%)`,Math.round(pct*0.8)]];
@@ -81,6 +83,7 @@ export function finish(){
 export function loop(now){
   const dt=Math.min(0.033,(now-last)/1000||0);last=now;const t=now/1000;
   if(mode==='play'){update(dt);tutorialTick(dt);hud();}
+  soundFrame(dt,mode==='play');
   if(G&&mode!=='menu')render(t);
   else{ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#f4e6c8';ctx.fillRect(0,0,cv.width,cv.height);paperOverlay();}
   if(mode==='menu')drawPreview(t);
@@ -88,7 +91,7 @@ export function loop(now){
 }
 export function initFlow(){
 $('pauseBtn').onclick=pause;
-$('resumeBtn').onclick=()=>{mode='play';show(null);last=performance.now();};
+$('resumeBtn').onclick=()=>{mode='play';show(null);last=performance.now();duckMusic(false);};
 $('quitBtn').onclick=()=>{if(G&&G.state==='play'){G.quit=true;G.state='lost';finish();}else toMenu();};
 $('launchBtn').onclick=start;$('againBtn').onclick=start;$('rebuildBtn').onclick=toMenu;
 $('copyBtn').onclick=async()=>{try{await navigator.clipboard.writeText(shareText);$('copyMsg').textContent='הועתק! אפשר להדביק בוואטסאפ.';}catch(e){$('copyMsg').textContent=shareText;}};

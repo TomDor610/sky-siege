@@ -8,6 +8,7 @@ import {input,pressed} from './input.js';
 import {explode,foeOf,hitPlane,makePlane,spawnPlane,updatePlane} from './physics.js';
 import {myCastleHP} from './progress.js';
 import {G,build,difficulty,fort,gameMode,prog,setG} from './state.js';
+import {sfx} from './sound.js';
 import {clamp} from './util.js';
 import {viewH,viewW} from './view.js';
 export function newGame(){
@@ -48,7 +49,7 @@ export function update(dt){
     if(bo.kind==='pot'){
       if(Math.random()<.6)spark(bo.x,bo.y,'flame');bo.fuse-=dt;
       const rr=bo.rad||1;
-      if(dp<55*rr||bo.fuse<=0){bo.life=0;spark(bo.x,bo.y,'fire',16);spark(bo.x,bo.y,'smoke');spark(bo.x,bo.y,'smoke');
+      if(dp<55*rr||bo.fuse<=0){bo.life=0;sfx('pot',{x:bo.x});spark(bo.x,bo.y,'fire',16);spark(bo.x,bo.y,'smoke');spark(bo.x,bo.y,'smoke');
         if(pl&&dp<80*rr)hitPlane(pl,bo.dmg,"פגז של מנג'ניק הפיל את המכונה");}
     }else if(pl&&dp<24){bo.life=0;spark(bo.x,bo.y,'spark',10);hitPlane(pl,bo.dmg,bo.kind==='arrow'?'חיצי הקשתים הפילו את המכונה':'חץ בליסטרה הפיל את המכונה');}
     if(bo.y>WORLD.ground)bo.life=0;
@@ -58,7 +59,7 @@ export function update(dt){
     ar.vy+=120*dt;ar.x+=ar.vx*dt;ar.y+=ar.vy*dt;ar.life-=dt;
     for(const c of G.castles){if(c.side===ar.owner)continue;
       for(const b of c.defs)if(ar.life>0&&b.alive&&Math.hypot(b.x-ar.x,b.y-ar.y)<30){ar.life=0;b.hp--;spark(ar.x,ar.y,'splinter',5);if(b.hp<=0)killDef(c,b);}
-      if(ar.life>0&&c.hp>0&&hitsCastle(c,ar.x,ar.y)){ar.life=0;c.hp-=3*ar.mul;spark(ar.x,ar.y,'spark',6);}}
+      if(ar.life>0&&c.hp>0&&hitsCastle(c,ar.x,ar.y)){ar.life=0;sfx('thunk',{x:ar.x});c.hp-=3*ar.mul;spark(ar.x,ar.y,'spark',6);}}
     const pl=foeOf(ar.owner);
     if(ar.life>0&&pl&&Math.hypot(pl.x-ar.x,pl.y-ar.y)<26){ar.life=0;hitPlane(pl,8*ar.mul,'חיצי קשת הפילו את המכונה');spark(ar.x,ar.y,'spark',8);}
     if(ar.y>WORLD.ground)ar.life=0;
@@ -81,7 +82,7 @@ export function update(dt){
     const foeDown=G.foe.hp<=0,mineDown=G.mine&&G.mine.hp<=0;
     if(foeDown||mineDown){
       G.state=foeDown&&!mineDown?'won':'lost';G.winTime=G.t;G.end=G.t+2.6;
-      for(const c of G.castles)if(c.hp<=0){c.hp=0;c.fallen=true;floater(castleMid(c),castleTop(c)-60,c.side==='L'?'הטירה שלך נפלה!':'הטירה נפלה!',c.side==='L'?'#a3341f':'#4f6b2c');for(const b of c.defs)b.alive=false;}
+      for(const c of G.castles)if(c.hp<=0){c.hp=0;c.fallen=true;sfx('castleFall',{x:castleMid(c)});floater(castleMid(c),castleTop(c)-60,c.side==='L'?'הטירה שלך נפלה!':'הטירה נפלה!',c.side==='L'?'#a3341f':'#4f6b2c');for(const b of c.defs)b.alive=false;}
     }else if(G.duel&&G.t>=DUEL_TIME){
       const mp=G.mine.hp/G.mine.max,fp=G.foe.hp/G.foe.max;G.state=mp>fp?'won':'lost';G.timeUp=true;G.winTime=G.t;G.end=G.t+1.5;
       floater(me.x,me.y-50,'נגמר הזמן!');

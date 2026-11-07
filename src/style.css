@@ -95,3 +95,8 @@ body.duel #ownBox{display:block}
 /* short landscape phones: sit low, between the touch buttons, so it does not cover the plane (camera keeps it ~45% down) */
 @media (orientation:landscape) and (max-height:500px){#tut{top:auto;bottom:10px;width:min(430px,calc(100vw - 400px));min-width:260px}#tut::after{display:none}#tutTxt{font-size:15px}}
 @keyframes tutPulse{0%,100%{box-shadow:0 0 0 0 rgba(163,52,31,.75)}50%{box-shadow:0 0 0 12px rgba(163,52,31,0)}}
+/* Sound controls (src/ui/sound-ui.js) */
+#soundBtn{pointer-events:auto;position:fixed;top:64px;left:10px;z-index:6;font-size:16px;padding:2px 9px;background:rgba(242,228,196,.88)}
+.soundSeg{max-width:420px;margin:8px auto 0}
+.soundSeg button{font-size:14px;opacity:.6}
+.soundSeg button.on{opacity:1}

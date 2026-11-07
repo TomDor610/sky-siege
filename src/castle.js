@@ -3,6 +3,7 @@ import {BASE_HEIGHTS,BOLT_G,BOLT_SPEED,COL,CW,DEF,DIFF,FREE_COLS,LEVEL_ADDS,POT_
 import {floater,spark} from './effects.js';
 import {foeOf,planeDir} from './physics.js';
 import {G,difficulty,prog} from './state.js';
+import {sfx} from './sound.js';
 import {clamp,rnd} from './util.js';
 export function castleHeightsFor(walls){return BASE_HEIGHTS.map((h,i)=>h+((i>=2&&i<=3)||(i>=7&&i<=8)?walls:0)+(i>=4&&i<=6&&walls>=2?1:0));}
 export function castleSpec(diff,lvl){
@@ -26,7 +27,7 @@ export const colTop=(c,i)=>WORLD.ground-c.heights[i]*COL;
 export const castleTop=c=>WORLD.ground-Math.max(...c.heights)*COL;
 export const castleMid=c=>c.x0+CW/2;
 export function hitsCastle(c,x,y){if(x<c.x0||x>=c.x0+CW)return false;return y>=colTop(c,Math.floor((x-c.x0)/COL));}
-export function killDef(c,b){if(!b.alive)return;b.alive=false;spark(b.x,b.y,'splinter',18);floater(b.x,b.y-40,'חוסל: '+DEF[b.type].name,c.side==='L'?'#a3341f':'#4f6b2c');c.hp-=10;if(c.side==='R')G.killedDefs++;}
+export function killDef(c,b){if(!b.alive)return;b.alive=false;spark(b.x,b.y,'splinter',18);sfx('defDown',{x:b.x});floater(b.x,b.y-40,'חוסל: '+DEF[b.type].name,c.side==='L'?'#a3341f':'#4f6b2c');c.hp-=10;if(c.side==='R')G.killedDefs++;}
 export function damageCastle(c,x,y,dmg){
   const ci=Math.floor((x-c.x0)/COL);
   for(let d=-1;d<=1;d++){const i=ci+d;if(i<0||i>=c.heights.length)continue;
@@ -48,7 +49,7 @@ export function updateDefenses(c,dt){
       const T=clamp(dist/430,0.9,2.4),L=Math.max(0.5,A.lead),tx=pl.x+vx*T*L,ty=pl.y+vy*T*L;
       b.angle=Math.atan2(ty-b.y,tx-b.x);
       if(dist<1350&&b.cd<=0){b.cd=A.fire*1.7*rnd(.85,1.15);b.swing=0.5;const ex=rnd(-1,1)*A.spread*250,mm=1+0.15*c.mods.mangonel;
-        G.bolts.push({owner:c.side,kind:'pot',x:b.x,y:b.y-10,vx:(tx+ex-b.x)/T,vy:(ty-b.y+10-0.5*POT_G*T*T)/T,life:T+0.8,fuse:T,dmg:20*mm,rad:mm});}
+        sfx('mangonel',{x:b.x});G.bolts.push({owner:c.side,kind:'pot',x:b.x,y:b.y-10,vx:(tx+ex-b.x)/T,vy:(ty-b.y+10-0.5*POT_G*T*T)/T,life:T+0.8,fuse:T,dmg:20*mm,rad:mm});}
       continue;
     }
     const spd=b.type==='archers'?560:BOLT_SPEED,tt=dist/spd;
@@ -57,8 +58,8 @@ export function updateDefenses(c,dt){
     b.angle+=clamp(da,-3*dt,3*dt);
     if(b.type==='archers'){
       if(dist<820*(1+0.1*c.mods.archers)&&b.cd<=0&&Math.abs(da)<0.4){b.cd=A.fire*1.1*(1-0.06*c.mods.archers)*rnd(.8,1.2);
-        for(let k=0;k<3;k++){const a=b.angle+rnd(-1,1)*(A.spread+0.07);G.bolts.push({owner:c.side,kind:'arrow',x:b.x,y:b.y-8,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,life:2,dmg:10});}}
+        sfx('archers',{x:b.x});for(let k=0;k<3;k++){const a=b.angle+rnd(-1,1)*(A.spread+0.07);G.bolts.push({owner:c.side,kind:'arrow',x:b.x,y:b.y-8,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,life:2,dmg:10});}}
     }else if(dist<1150&&b.cd<=0&&Math.abs(da)<0.3){b.cd=A.fire*(1-0.06*c.mods.ballista)*rnd(0.8,1.2);const a=b.angle+rnd(-1,1)*A.spread;
-      G.bolts.push({owner:c.side,kind:'bolt',x:b.x+Math.cos(a)*20,y:b.y+Math.sin(a)*20,vx:Math.cos(a)*BOLT_SPEED,vy:Math.sin(a)*BOLT_SPEED,life:3,dmg:25*(1+0.12*c.mods.ballista)});}
+      sfx('ballista',{x:b.x});G.bolts.push({owner:c.side,kind:'bolt',x:b.x+Math.cos(a)*20,y:b.y+Math.sin(a)*20,vx:Math.cos(a)*BOLT_SPEED,vy:Math.sin(a)*BOLT_SPEED,life:3,dmg:25*(1+0.12*c.mods.ballista)});}
   }
 }
