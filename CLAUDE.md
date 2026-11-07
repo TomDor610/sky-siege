@@ -10,8 +10,34 @@
 5. **סגנון אחד לכל המשחק:** נייר ישן, קווי דיו מצוירים ביד, צבעי מים, גיר אדום, כתב ראי באיטלקית ברקע.
 
 ## מצב נוכחי
-- הכול בקובץ אחד: `index.html` (כ-1,250 שורות), JavaScript נקי, Canvas 2D, בלי תלויות חיצוניות (חוץ מגופן Frank Ruhl Libre מ-Google Fonts).
-- מפורסם כרגע כ-artifact ציבורי ב-claude.ai (דורש HTML יחיד ועצמאי, בלי fetch לשרתים חיצוניים).
+- פרויקט Vite (JavaScript נקי, בלי framework), Canvas 2D, בלי תלויות ריצה (חוץ מגופן Frank Ruhl Libre מ-Google Fonts). Git מאותחל.
+- `npm run build` מייצר את `dist/index.html`: קובץ יחיד ועצמאי (vite-plugin-singlefile), JS ו-CSS בפנים.
+- מפורסם כרגע כ-artifact ציבורי ב-claude.ai (דורש HTML יחיד ועצמאי, בלי fetch לשרתים חיצוניים). מפרסמים את `dist/index.html`.
+
+### פקודות
+- `npm run dev`: שרת פיתוח בכתובת http://localhost:5173
+- `npm run build`: בנייה ל-`dist/index.html`
+- `npm test`: כל בדיקות Playwright, גם מול שרת הפיתוח וגם מול הקובץ הבנוי
+- (ב-Windows, אם `node` לא נמצא ב-Git Bash: `export PATH="/c/Program Files/nodejs:$PATH"`)
+
+### מבנה הקוד (`src/`)
+| קובץ | תוכן |
+|---|---|
+| `data.js` | כל הנתונים והקבועים: `STYLES`, `PARTS`, `BOMBTYPE`, `UPG`, `DEF`, `DIFF`, `BOT`, קבועי פיזיקה ועולם |
+| `state.js` | מצב משותף שמשתנה: `G`, `prog`, `build`, `fort`, `gameMode`, `difficulty`. **הצבה רק דרך `setX()`** (ייבוא ב-ES modules הוא לקריאה בלבד) |
+| `progress.js` | ‏`freshProg`, ‏`loadSaved` (טעינה מ-localStorage), שמירה, `budget`, `sanitize`, דרגות |
+| `physics.js` | ‏`stats`, `updatePlane`, יצירת מכונות, פגיעות, `explode` |
+| `castle.js` | ‏`castleSpec`, `makeCastle`, `updateDefenses`, `damageCastle` |
+| `bot.js` | ‏`botLoadout`, `botThink` |
+| `game.js` | ‏`newGame` ו-`update` (צעד סימולציה: קליעים, תוצאה, מצלמה) |
+| `effects.js` | ‏`spark`, `floater` |
+| `input.js` | מקלדת ומגע, `input`, `pressed`, `isTouch` |
+| `view.js` | ה-canvas הראשי, `scale/viewW/viewH`, `resize` |
+| `draw/` | ‏`sketch` (קווי דיו), `paper`, `world` (שמיים, קרקע, מגדל בית), `machine`, `castle`, `render` |
+| `ui/build.js`, `ui/hud.js` | מסך הסדנה וה-HUD |
+| `flow.js` | ‏`start`, `pause`, `finish` (מסך תוצאה ומטבעות), `loop` |
+| `main.js` | אתחול לפי סדר קבוע ו-`window.__sky` |
+| `style.css` | כל ה-CSS |
 
 ### מצבי משחק
 - **דו-קרב מול בוט (`gameMode='duel'`):** שתי טירות (שחקן משמאל, side `'L'`; בוט מימין, side `'R'`), שתי מכונות, תחייה אחרי 4 שניות, מגבלת זמן `DUEL_TIME=150`. ניצחון כשטירת היריב נופלת, או לפי אחוז חוזק בסוף הזמן.
@@ -31,7 +57,11 @@
 
 ### ממשק לבדיקות
 `window.__sky` חושף `G`, `prog`, `input`, `press('bomb'|'flip')`, `step(n)`, `setMode`, `refresh`.
-הבדיקות עד היום נעשו ב-Playwright עם "טייס אוטומטי" שמריץ קרב שלם ב-`step()` ומחזיר תוצאה: מצב, חוזק טירות, זמן.
+הבדיקות ב-`tests/` (Playwright):
+- `helpers/autopilot.js`: טייס אוטומטי (`runBattle`) שמריץ קרב שלם ב-`step()` ומחזיר תוצאה. `Math.random` מקבל seed, והקרב רץ בקריאה סינכרונית אחת, כך שהתוצאה דטרמיניסטית.
+- `autopilot.spec.js`: דו-קרב וקמפיין × 3 רמות × 3 seeds. בודק שאין שגיאות ושהקרב מסתיים, וגם השוואה מדויקת ל-`tests/baseline.json`.
+- `screens.spec.js`: צילומי מסך בטלפון 844x390 ו-390x844, שנשמרים ל-`tests/screenshots/`.
+- **`baseline.json`** נרשם מהגרסה המקורית (commit `a8bd6f9`). שינוי מכוון במשחקיות או באיזון ישבור את בדיקת ה-baseline, וזה צפוי. אחרי שמוודאים שהשינוי רצוי, מייצרים מחדש: `node tests/tools/make-baseline.mjs http://localhost:5173/` (כששרת הפיתוח רץ).
 
 ## כללי עבודה
 - כל הטקסט למשתמש בעברית. ב-Canvas משתמשים ב-`ctx.direction='rtl'`.

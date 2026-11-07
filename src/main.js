@@ -1,0 +1,20 @@
+// Entry point. Init order mirrors the original single-file script.
+import {initPaper} from './draw/paper.js';
+import {initWorld} from './draw/world.js';
+import {initFlow,loop,start} from './flow.js';
+import {update} from './game.js';
+import {initInput,input,pressed} from './input.js';
+import {stats} from './physics.js';
+import {loadSaved,sanitize} from './progress.js';
+import {G,build,fort,prog,setGameMode} from './state.js';
+import {initBuildUI,refreshBuild} from './ui/build.js';
+import {initView,resize} from './view.js';
+loadSaved();sanitize();
+initBuildUI();
+initView();
+initPaper();
+initWorld();
+initInput();
+initFlow();
+resize();refreshBuild();requestAnimationFrame(loop);
+window.__sky={get G(){return G},get prog(){return prog},start,input,stats,build:()=>build,fort:()=>fort,setMode:m=>{setGameMode(m);refreshBuild();},press:k=>{if(k==='bomb')pressed.bomb=true;if(k==='flip')pressed.flip=true;},step:(n,dt)=>{for(let i=0;i<n;i++){if(G.state==='play'||G.state==='won'||G.state==='lost')update(dt||1/60);}},refresh:refreshBuild};

@@ -1,0 +1,17 @@
+{
+  "name": "sky-siege",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "vite": "^8.3.6",
+    "vite-plugin-singlefile": "^2.3.4"
+  }
+}
