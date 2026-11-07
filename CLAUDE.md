@@ -18,6 +18,7 @@
 - `npm run dev`: שרת פיתוח בכתובת http://localhost:5173
 - `npm run build`: בנייה ל-`dist/index.html`
 - `npm test`: כל בדיקות Playwright, גם מול שרת הפיתוח וגם מול הקובץ הבנוי
+- פרסום: `.github/workflows/deploy.yml` מריץ את הבדיקות בכל push ל-main, ורק אם הן עוברות מפרסם את `dist` ל-GitHub Pages. בדיקה שנכשלת = אין פרסום.
 - (ב-Windows, אם `node` לא נמצא ב-Git Bash: `export PATH="/c/Program Files/nodejs:$PATH"`)
 
 ### מבנה הקוד (`src/`)
