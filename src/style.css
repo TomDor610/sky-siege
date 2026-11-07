@@ -112,3 +112,6 @@ html[dir=ltr] .upg .pips{margin-right:0;margin-left:10px}
 html[dir=ltr] .earn{text-align:left}
 /* pause + sound sit under the single enemy-castle box, which is on the right in LTR */
 html[dir=ltr] #hudBtns{left:auto;right:10px;direction:rtl}
+/* Cloud save (src/ui/cloud-ui.js) */
+.cloudBox{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:center;margin:10px auto 0;max-width:520px;text-align:center}
+.cloudBox button{font-size:14px;padding:4px 12px}

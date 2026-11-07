@@ -3,3 +3,7 @@ dist/
 test-results/
 playwright-report/
 tests/screenshots/
+
+# Firebase emulator
+*.log
+.firebase/

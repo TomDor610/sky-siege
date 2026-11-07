@@ -1,0 +1,44 @@
+rules_version = '2';
+
+// Sky Siege cloud saves: one document per player, users/{uid}.
+// A signed-in player (anonymous or Google) can read and write ONLY their own document.
+// Writes must have the expected shape; nothing can be deleted; everything else is closed.
+//
+// Note: rules protect players from each other, not a player from editing their own save
+// (there is no trusted server on the Spark plan). Keep that in mind for leaderboards.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function validSave() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['v', 'prog', 'build', 'fort', 'buildAt', 'updatedAt'])
+        && d.keys().hasAll(['v', 'prog', 'build', 'fort', 'updatedAt'])
+        && d.v is int && d.v >= 1 && d.v < 100
+        && d.prog is map && d.build is map && d.fort is map
+        && d.prog.keys().hasOnly(['coins', 'coinsEarned', 'coinsSpent', 'epoch', 'upg', 'xp',
+                                  'styles', 'unl', 'wins', 'duelWins', 'best'])
+        && d.prog.coins is number && d.prog.xp is number
+        && d.prog.upg is map && d.prog.styles is map && d.prog.unl is map
+        && d.prog.wins is map && d.prog.duelWins is map && d.prog.best is map
+        && d.build.size() <= 12
+        && d.fort.keys().hasOnly(['slots', 'walls'])
+        && d.fort.slots is list && d.fort.slots.size() <= 5
+        && (!('buildAt' in d) || d.buildAt is number)
+        && d.updatedAt == request.time;
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validSave();
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

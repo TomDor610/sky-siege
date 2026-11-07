@@ -231,6 +231,15 @@ export default {
   'tut.rearm.siege': 'Out of bombs! Fly back above your home tower, into the green box, to rearm',
   'tut.done': "Great, you're ready! Now bring that castle down 🏰",
 
+  // ---- cloud save
+  'cloud.syncing': '☁ Syncing…',
+  'cloud.saved': '☁ Saved to the cloud',
+  'cloud.savedAs': '☁ Saved to the cloud · {name}',
+  'cloud.offline': '☁ Offline: saved on this device',
+  'cloud.error': '☁ Sync failed: saved on this device',
+  'cloud.google': 'Sign in with Google to play on any device',
+  'cloud.signOut': 'Sign out',
+
   // ---- sound controls
   'snd.mute': 'Mute (M)',
   'snd.unmute': 'Sound on (M)',

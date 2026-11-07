@@ -6,7 +6,7 @@ import {drawMachine} from '../draw/machine.js';
 import {t} from '../i18n/index.js';
 import {isTouch} from '../input.js';
 import {stats} from '../physics.js';
-import {costOf,defaultBuild,defaultFort,fortCost,freshProg,myCastleHP,myRank,partCost,pool,rankName,sanitize,saveBuild,saveProg,upgMax,used,xpFor} from '../progress.js';
+import {costOf,spendCoins,defaultBuild,defaultFort,fortCost,freshProg,myCastleHP,myRank,partCost,pool,rankName,sanitize,saveBuild,saveProg,upgMax,used,xpFor} from '../progress.js';
 import {build,difficulty,fort,gameMode,prog,setBuild,setDifficulty,setFort,setGameMode,setProg} from '../state.js';
 import {$,clamp,store} from '../util.js';
 export const preview=$('preview'),pctx=preview.getContext('2d');
@@ -27,7 +27,7 @@ export function renderStyles(){
   if(previewStyle&&!prog.styles[previewStyle]){
     ub.classList.remove('hidden');ub.disabled=prog.coins<S.cost;
     ub.textContent=prog.coins>=S.cost?t('style.unlock',{name:t(`style.${cur}.name`),cost:S.cost}):t('style.need',{cost:S.cost,missing:S.cost-prog.coins});
-    ub.onclick=()=>{if(prog.coins<S.cost)return;prog.coins-=S.cost;prog.styles[previewStyle]=true;build.style=previewStyle;previewStyle=null;saveProg();saveBuild();refreshBuild();};
+    ub.onclick=()=>{if(prog.coins<S.cost)return;spendCoins(S.cost);prog.styles[previewStyle]=true;build.style=previewStyle;previewStyle=null;saveProg();saveBuild();refreshBuild();};
   }else ub.classList.add('hidden');
 }
 export function partRow(box,label,cost,desc,val,canDec,canInc,onDec,onInc){
@@ -98,7 +98,7 @@ export function renderShop(){
     d.innerHTML=`<div class="nm">${t(`upg.${k}.name`)}<span class="pips">${pips}</span></div>
       <div class="ds">${l>0?t('upg.now',{eff:eff(l)}):t('upg.notYet')}${maxed?'':'<br>'+t('upg.next',{eff:eff(l+1)})}</div>
       <button class="${!maxed&&prog.coins>=c?'buy':''}" ${maxed||prog.coins<c?'disabled':''}>${maxed?t('upg.max'):c+' 🪙'}</button>`;
-    d.querySelector('button').onclick=()=>{if(maxed||prog.coins<c)return;prog.coins-=c;prog.upg[k]++;saveProg();refreshBuild();};
+    d.querySelector('button').onclick=()=>{if(maxed||prog.coins<c)return;spendCoins(c);prog.upg[k]++;saveProg();refreshBuild();};
     box.appendChild(d);
   }};
   sec(t('shop.machineTitle'),UPG);
@@ -109,7 +109,7 @@ export function renderShop(){
     const d=document.createElement('div');d.className='upg';
     d.innerHTML=`<div class="nm">${t(`unlock.${k}.name`)}</div><div class="ds">${t(`unlock.${k}.desc`)}</div>
       <button class="${!own&&prog.coins>=U.cost?'buy':''}" ${own||prog.coins<U.cost?'disabled':''}>${own?t('unlock.owned'):U.cost+' 🪙'}</button>`;
-    d.querySelector('button').onclick=()=>{if(own||prog.coins<U.cost)return;prog.coins-=U.cost;prog.unl[k]=true;saveProg();refreshBuild();};
+    d.querySelector('button').onclick=()=>{if(own||prog.coins<U.cost)return;spendCoins(U.cost);prog.unl[k]=true;saveProg();refreshBuild();};
     ub.appendChild(d);
   }
 }
@@ -161,7 +161,7 @@ export function drawPreview(time){
 export function renderControls(){$('controlsTxt').textContent=isTouch?t('controls.touch'):t('controls.keys');}
 export function initBuildUI(){
 $('resetBtn').onclick=()=>{
-  if(Date.now()-resetArm<3000){setProg(freshProg());saveProg();setBuild(defaultBuild());setFort(defaultFort());sanitize();saveBuild();$('resetBtn').textContent=t('reset.btn');refreshBuild();}
+  if(Date.now()-resetArm<3000){const epoch=(prog.epoch||0)+1;setProg(freshProg());prog.epoch=epoch;saveProg();setBuild(defaultBuild());setFort(defaultFort());sanitize();saveBuild();$('resetBtn').textContent=t('reset.btn');refreshBuild();}
   else{resetArm=Date.now();$('resetBtn').textContent=t('reset.confirm');setTimeout(()=>$('resetBtn').textContent=t('reset.btn'),3000);}
 };
 document.querySelectorAll('#diffSeg button').forEach(b=>b.onclick=()=>{setDifficulty(b.dataset.d);store.set('skysiege_diff',difficulty);refreshBuild();});

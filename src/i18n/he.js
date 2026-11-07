@@ -230,6 +230,15 @@ export default {
   'tut.rearm.siege': 'נגמרו הפצצות! חזור אל מעל מגדל הבית, לתוך המסגרת הירוקה, כדי לחמש',
   'tut.done': 'מעולה, אתה מוכן! עכשיו הפל את הטירה 🏰',
 
+  // ---- cloud save
+  'cloud.syncing': '☁ מסנכרן…',
+  'cloud.saved': '☁ נשמר בענן',
+  'cloud.savedAs': '☁ נשמר בענן · {name}',
+  'cloud.offline': '☁ לא מחובר: נשמר במכשיר',
+  'cloud.error': '☁ הסנכרון נכשל: נשמר במכשיר',
+  'cloud.google': 'התחבר עם Google כדי לשחק בכל מכשיר',
+  'cloud.signOut': 'התנתק',
+
   // ---- sound controls
   'snd.mute': 'השתק (M)',
   'snd.unmute': 'הפעל צלילים (M)',

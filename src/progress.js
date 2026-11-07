@@ -7,18 +7,31 @@ export const xpFor=r=>30*(r-1)*r;
 export function rankOf(xp){let r=1;while(r<RANK_MAX&&xp>=xpFor(r+1))r++;return r;}
 export function rankName(r){let n=RANKS[0][1];for(const [m,id] of RANKS)if(r>=m)n=id;return t('rank.'+n);}
 export const upgMax=k=>ALLUPG[k].max||UPG_MAX;
-export function freshProg(){return {coins:120,upg:{frame:0,wings:0,props:0,armor:0,weapons:0,workshop:0,stone:0,ballista:0,archers:0,mangonel:0},xp:0,styles:{classic:true},unl:{crossbow:false,greek:false,slot5:false},wins:{easy:0,medium:0,hard:0},duelWins:{easy:0,medium:0,hard:0},best:{}}}
+// coinsEarned/coinsSpent only ever grow (coins = earned - spent), so cloud merges can take the max
+// of each without refunding purchases; epoch grows on "reset progress" so a reset wins over old saves.
+export function freshProg(){return {coins:120,coinsEarned:120,coinsSpent:0,epoch:0,upg:{frame:0,wings:0,props:0,armor:0,weapons:0,workshop:0,stone:0,ballista:0,archers:0,mangonel:0},xp:0,styles:{classic:true},unl:{crossbow:false,greek:false,slot5:false},wins:{easy:0,medium:0,hard:0},duelWins:{easy:0,medium:0,hard:0},best:{}}}
 export function defaultBuild(){return {style:'classic',wings:2,props:2,armor:1,bombs:4,crossbows:0,bombType:'stone'};}
 export function defaultFort(){return {slots:['ballista',null,'archers',null,null],walls:0};}
 export function loadSaved(){
 setProg(freshProg());
-try{const p=JSON.parse(store.get('skysiege_prog')||'null');if(p&&p.upg){const f=freshProg();setProg(Object.assign(f,p));prog.upg=Object.assign(freshProg().upg,p.upg);prog.wins=Object.assign(freshProg().wins,p.wins);prog.duelWins=Object.assign(freshProg().duelWins,p.duelWins);prog.unl=Object.assign(freshProg().unl,p.unl);prog.styles=Object.assign({classic:true},p.styles);}}catch(e){}
+try{const p=JSON.parse(store.get('skysiege_prog')||'null');if(p&&p.upg){const f=freshProg();setProg(Object.assign(f,p));prog.upg=Object.assign(freshProg().upg,p.upg);prog.wins=Object.assign(freshProg().wins,p.wins);prog.duelWins=Object.assign(freshProg().duelWins,p.duelWins);prog.unl=Object.assign(freshProg().unl,p.unl);prog.styles=Object.assign({classic:true},p.styles);fixCoins(prog,p);}}catch(e){}
 setGameMode('duel');setBuild(defaultBuild());setFort(defaultFort());setDifficulty('medium');
 try{const s=JSON.parse(store.get('skysiege_build2')||'null');if(s&&s.wings)setBuild(Object.assign(build,s));
   const f=JSON.parse(store.get('skysiege_fort')||'null');if(f&&f.slots){const sl=f.slots.slice(0,5);while(sl.length<5)sl.push(null);setFort({slots:sl,walls:+f.walls||0});}
   const d=store.get('skysiege_diff');if(d&&DIFF[d])setDifficulty(d);const m=store.get('skysiege_mode');if(m==='duel'||m==='campaign')setGameMode(m);}catch(e){}
 }
-export function saveProg(){store.set('skysiege_prog',JSON.stringify(prog));}
+export function saveProg(){store.set('skysiege_prog',JSON.stringify(prog));saved('prog');}
+// Saves made before the counters existed: start them from the current balance.
+export function fixCoins(pr,raw){
+  if(!raw||raw.coinsEarned===undefined||raw.coinsSpent===undefined){pr.coinsEarned=pr.coins;pr.coinsSpent=0;}
+  if(pr.coinsEarned-pr.coinsSpent!==pr.coins)pr.coinsEarned=pr.coins+pr.coinsSpent;
+  return pr;
+}
+export function earnCoins(n){prog.coins+=n;prog.coinsEarned+=n;}
+export function spendCoins(n){prog.coins-=n;prog.coinsSpent+=n;}
+const saveListeners=[];
+export const onSaved=f=>saveListeners.push(f);
+function saved(what){for(const f of saveListeners)f(what);}
 export function costOf(k){return Math.round(ALLUPG[k].base*Math.pow(prog.upg[k]+1,1.6)/5)*5}
 export const myRank=()=>rankOf(prog.xp||0);
 export function budget(){return 100+10*prog.upg.workshop+5*(myRank()-1)}
@@ -44,4 +57,4 @@ export function sanitize(){
     if(!done)break;
   }
 }
-export function saveBuild(){store.set('skysiege_build2',JSON.stringify(build));store.set('skysiege_fort',JSON.stringify(fort));}
+export function saveBuild(){store.set('skysiege_build2',JSON.stringify(build));store.set('skysiege_fort',JSON.stringify(fort));saved('build');}

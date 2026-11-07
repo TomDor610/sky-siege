@@ -6,7 +6,7 @@ import {render} from './draw/render.js';
 import {newGame,update} from './game.js';
 import {t} from './i18n/index.js';
 import {input,isTouch} from './input.js';
-import {myRank,rankName,sanitize,saveProg,xpFor} from './progress.js';
+import {earnCoins,myRank,rankName,sanitize,saveProg,xpFor} from './progress.js';
 import {G,build,prog,setG} from './state.js';
 import {drawPreview,refreshBuild,setPreviewStyle} from './ui/build.js';
 import {hud,resetHud} from './ui/hud.js';
@@ -14,6 +14,7 @@ import {tutorialBegin,tutorialEnd,tutorialTick} from './ui/tutorial.js';
 import {$} from './util.js';
 import {ctx,cv,resize} from './view.js';
 import {duckMusic,setMusicMode,sfx,soundFrame} from './sound.js';
+import {syncResume} from './sync/index.js';
 export let mode='menu',last=0,tipTimer=0;
 export function show(id){['buildScreen','resultScreen','pauseScreen'].forEach(s=>$(s).classList.toggle('hidden',s!==id));}
 export function setPlayUI(on){['hud','pauseBtn','soundBtn'].forEach(s=>$(s).classList.toggle('hidden',!on));$('touch').classList.toggle('hidden',!(on&&isTouch));$('shootBtn').classList.toggle('hidden',!(build.crossbows>0));}
@@ -29,7 +30,7 @@ export function start(){
   tutorialBegin();
   setMusicMode('battle');duckMusic(false);sfx('launch');
 }
-export function toMenu(){tutorialEnd();setMusicMode('menu');duckMusic(false);mode='menu';setG(null);setPlayUI(false);show('buildScreen');refreshBuild();resize();}
+export function toMenu(){tutorialEnd();setMusicMode('menu');duckMusic(false);mode='menu';setG(null);syncResume();setPlayUI(false);show('buildScreen');refreshBuild();resize();}
 export function pause(){if(mode!=='play')return;mode='pause';show('pauseScreen');duckMusic(true);}
 export let shareText='';
 export function finish(){
@@ -46,7 +47,7 @@ export function finish(){
   }
   if(G.quit)lines.length=1,lines[0][1]=Math.round(lines[0][1]/2);
   const sub=lines.reduce((a,l)=>a+l[1],0),total=Math.round(sub*G.mult);
-  prog.coins+=total;
+  earnCoins(total);
   const xpGain=G.quit?5:Math.round(20+pct*0.5+(won?40:0)+5*G.killedDefs+(G.duel?8*G.botDowns:0));
   const r0=myRank();prog.xp=(prog.xp||0)+xpGain;const r1=myRank();
   let rec=false;
