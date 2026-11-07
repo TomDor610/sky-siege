@@ -38,6 +38,17 @@ for (const phone of PHONES) {
       await expect(page.locator('#touch')).toBeVisible(); // touch controls on a phone
       await shot('duel');
 
+      // HUD buttons must not sit on top of the HUD boxes or the tutorial bubble
+      const overlaps = await page.evaluate(() => {
+        const box = el => { const r = el.getBoundingClientRect(); return { el: el.id || el.querySelector('span')?.id, l: r.left, r: r.right, t: r.top, b: r.bottom }; };
+        const btns = ['pauseBtn', 'soundBtn'].map(id => box(document.getElementById(id)));
+        const others = [...document.querySelectorAll('#hud .hbox'), document.getElementById('tut')]
+          .filter(el => el.getClientRects().length > 0).map(box); // visible only
+        const hit = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+        return btns.flatMap(a => others.filter(b => hit(a, b)).map(b => `${a.el} overlaps ${b.el}`));
+      });
+      expect(overlaps).toEqual([]);
+
       // campaign, then the result screen
       const res = await page.evaluate(runBattle, { mode: 'campaign', diff: 'easy', seed: 1 });
       expect(res.ended).toBe(true);

@@ -66,7 +66,9 @@ button:disabled{opacity:.35;cursor:default}
 .hbox .bar{height:8px;margin-top:3px;width:100%}
 #hudCenter{text-align:center;min-width:90px}
 #stall{color:var(--red);font-weight:900;font-size:18px;text-align:center;visibility:hidden;text-shadow:0 0 4px var(--parch)}
-#pauseBtn{pointer-events:auto;position:fixed;top:64px;right:10px;z-index:6;font-size:14px;padding:3px 9px;background:rgba(242,228,196,.88)}
+/* pause + sound buttons: top-left, under the single "enemy castle" box (the right side wraps to two rows on portrait phones) */
+#hudBtns{position:fixed;top:64px;left:10px;z-index:6;display:flex;gap:6px;direction:ltr;pointer-events:none}
+#pauseBtn{pointer-events:auto;font-size:14px;padding:3px 9px;background:rgba(242,228,196,.88)}
 #tip{position:fixed;left:50%;top:78px;transform:translateX(-50%);z-index:5;background:rgba(59,42,26,.85);color:var(--parch);padding:7px 12px;border-radius:4px;font-size:14px;text-align:center;pointer-events:none;transition:opacity .6s;max-width:92vw}
 #rotate{position:fixed;bottom:150px;left:50%;transform:translateX(-50%);z-index:5;font-size:13px;color:var(--ink2);background:rgba(242,228,196,.85);padding:3px 8px;border-radius:3px;pointer-events:none}
 #touch{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;justify-content:space-between;align-items:flex-end;padding:12px;pointer-events:none;direction:ltr}
@@ -96,7 +98,7 @@ body.duel #ownBox{display:block}
 @media (orientation:landscape) and (max-height:500px){#tut{top:auto;bottom:10px;width:min(430px,calc(100vw - 400px));min-width:260px}#tut::after{display:none}#tutTxt{font-size:15px}}
 @keyframes tutPulse{0%,100%{box-shadow:0 0 0 0 rgba(163,52,31,.75)}50%{box-shadow:0 0 0 12px rgba(163,52,31,0)}}
 /* Sound controls (src/ui/sound-ui.js) */
-#soundBtn{pointer-events:auto;position:fixed;top:64px;left:10px;z-index:6;font-size:16px;padding:2px 9px;background:rgba(242,228,196,.88)}
+#soundBtn{pointer-events:auto;font-size:16px;padding:2px 9px;background:rgba(242,228,196,.88)}
 .soundSeg{max-width:420px;margin:8px auto 0}
 .soundSeg button{font-size:14px;opacity:.6}
 .soundSeg button.on{opacity:1}
