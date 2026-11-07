@@ -36,6 +36,7 @@
 | `view.js` | ה-canvas הראשי, `scale/viewW/viewH`, `resize` |
 | `draw/` | ‏`sketch` (קווי דיו), `paper`, `world` (שמיים, קרקע, מגדל בית), `machine`, `castle`, `render` |
 | `ui/build.js`, `ui/hud.js` | מסך הסדנה וה-HUD |
+| `ui/tutorial.js` | הדרכת הקרב הראשון: בועות לפי פעולות השחקן (טיפוס, ירידה, סיבוב, פצצה, חימוש) וכפתור דילוג. קוראת את מצב המשחק בלבד ולא משתמשת ב-`Math.random` |
 | `flow.js` | ‏`start`, `pause`, `finish` (מסך תוצאה ומטבעות), `loop` |
 | `main.js` | אתחול לפי סדר קבוע ו-`window.__sky` |
 | `style.css` | כל ה-CSS |
@@ -53,14 +54,15 @@
 - **ציור:** `drawMachine`, `drawCastle`, `drawSky`, `drawGround`, `paperOverlay` (מרקם נייר ב-multiply ו-vignette), ופונקציות קו "ביד": `sk`, `skRect`, `hsh`.
 
 ### שמירה (localStorage)
-מפתחות: `skysiege_prog`, `skysiege_build2`, `skysiege_fort`, `skysiege_diff`, `skysiege_mode`.
+מפתחות: `skysiege_prog`, `skysiege_build2`, `skysiege_fort`, `skysiege_diff`, `skysiege_mode`, `skysiege_tutorial` (`done`/`skipped`; ההדרכה מופיעה רק לשחקן בלי XP ובלי ניצחונות, ורק עד שהמפתח קיים).
 **חובה לשמור תאימות לאחור.** שחקנים אמיתיים כבר משחקים. כל שדה חדש נכנס דרך `freshProg()` ו-`Object.assign` בזמן הטעינה, ואסור לאפס להם התקדמות.
 
 ### ממשק לבדיקות
-`window.__sky` חושף `G`, `prog`, `input`, `press('bomb'|'flip')`, `step(n)`, `setMode`, `refresh`.
+`window.__sky` חושף `G`, `prog`, `input`, `press('bomb'|'flip')`, `step(n)`, `setMode`, `refresh`, `tutorial()` (מצב ההדרכה).
 הבדיקות ב-`tests/` (Playwright):
 - `helpers/autopilot.js`: טייס אוטומטי (`runBattle`) שמריץ קרב שלם ב-`step()` ומחזיר תוצאה. `Math.random` מקבל seed, והקרב רץ בקריאה סינכרונית אחת, כך שהתוצאה דטרמיניסטית.
 - `autopilot.spec.js`: דו-קרב וקמפיין × 3 רמות × 3 seeds. בודק שאין שגיאות ושהקרב מסתיים, וגם השוואה מדויקת ל-`tests/baseline.json`.
+- `tutorial.spec.js`: ההדרכה לא משנה את תוצאות הטייס האוטומטי (מושווה ל-baseline), מגיבה לפעולות, נשמרת, הדילוג עובד, ושחקנים ותיקים לא רואים אותה.
 - `screens.spec.js`: צילומי מסך בטלפון 844x390 ו-390x844, שנשמרים ל-`tests/screenshots/`.
 - **`baseline.json`** נרשם מהגרסה המקורית (commit `a8bd6f9`). שינוי מכוון במשחקיות או באיזון ישבור את בדיקת ה-baseline, וזה צפוי. אחרי שמוודאים שהשינוי רצוי, מייצרים מחדש: `node tests/tools/make-baseline.mjs http://localhost:5173/` (כששרת הפיתוח רץ).
 

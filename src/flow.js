@@ -9,6 +9,7 @@ import {myRank,rankName,sanitize,saveProg,xpFor} from './progress.js';
 import {G,build,prog,setG} from './state.js';
 import {drawPreview,refreshBuild,setPreviewStyle} from './ui/build.js';
 import {hud,resetHud} from './ui/hud.js';
+import {tutorialBegin,tutorialEnd,tutorialTick} from './ui/tutorial.js';
 import {$} from './util.js';
 import {ctx,cv,resize} from './view.js';
 export let mode='menu',last=0,tipTimer=0;
@@ -23,13 +24,14 @@ export function start(){
   tip.textContent=G.duel?`הפל את הטירה של היריב לפני שהוא מפיל את שלך · ${ctl} · חימוש מעל הטירה שלך`:(G.spec.newest?`טירה רמה ${G.spec.lvl} · חדש: ${DEF[G.spec.newest].name}! · `:'')+ctl+' · חזור למגדל כדי לחמש';
   tip.classList.remove('hidden');tip.style.opacity=1;clearTimeout(tipTimer);
   tipTimer=setTimeout(()=>{tip.style.opacity=0;setTimeout(()=>tip.classList.add('hidden'),700);},6000);
+  tutorialBegin();
 }
-export function toMenu(){mode='menu';setG(null);setPlayUI(false);show('buildScreen');refreshBuild();resize();}
+export function toMenu(){tutorialEnd();mode='menu';setG(null);setPlayUI(false);show('buildScreen');refreshBuild();resize();}
 export function pause(){if(mode!=='play')return;mode='pause';show('pauseScreen');}
 export let shareText='';
 export function finish(){
   G.state=G.state==='won'?'wonDone':'lostDone';const won=G.state==='wonDone';
-  mode='result';setPlayUI(false);$('tip').classList.add('hidden');
+  tutorialEnd();mode='result';setPlayUI(false);$('tip').classList.add('hidden');
   const foe=G.foe,pct=Math.round(100*(1-Math.max(0,foe.hp)/foe.max));
   const lines=[[G.duel?`נזק לטירת היריב (${pct}%)`:`נזק לטירה (${pct}%)`,Math.round(pct*0.8)]];
   if(G.killedDefs)lines.push([`הגנות שהושמדו (${G.killedDefs})`,15*G.killedDefs]);
@@ -78,7 +80,7 @@ export function finish(){
 }
 export function loop(now){
   const dt=Math.min(0.033,(now-last)/1000||0);last=now;const t=now/1000;
-  if(mode==='play'){update(dt);hud();}
+  if(mode==='play'){update(dt);tutorialTick(dt);hud();}
   if(G&&mode!=='menu')render(t);
   else{ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#f4e6c8';ctx.fillRect(0,0,cv.width,cv.height);paperOverlay();}
   if(mode==='menu')drawPreview(t);
