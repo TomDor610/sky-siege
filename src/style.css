@@ -119,3 +119,26 @@ html[dir=ltr] #hudBtns{left:auto;right:10px;direction:rtl}
 .acctBadge{width:fit-content;margin:6px auto 0;font-size:12.5px;font-weight:700;padding:1px 9px;border-radius:10px;border:1.5px solid var(--ink2);color:var(--ink2);white-space:nowrap}
 .acctBadge.guest{border-style:dashed}
 .acctBadge.cloud{color:var(--green);border-color:var(--green);background:rgba(79,107,44,.08)}
+/* Leaderboard (src/ui/leaderboard-ui.js) */
+.hdrBtns{display:flex;gap:6px;justify-content:center;margin-top:6px;flex-wrap:wrap}
+.hdrBtns .langBtn{margin-top:0}
+.hdrBtn{font-size:13px;padding:2px 10px;font-weight:700}
+.lbCard{max-width:640px}
+.lbCard .top h1{font-size:28px}
+.lbCard #lbViews button{font-size:14px}
+.lbMsg{min-height:18px;margin:4px 0;text-align:center}
+.lbTable{width:100%;border-collapse:collapse;font-size:15px;margin-top:2px}
+.lbTable th{font-size:12.5px;color:var(--ink2);font-weight:700;border-bottom:1.5px solid var(--ink2);padding:3px 4px;text-align:start}
+.lbTable td{padding:6px 4px;border-bottom:1px dotted rgba(107,79,51,.5);white-space:nowrap}
+.lbTable td.nm{white-space:normal;word-break:break-word;font-weight:700}
+.lbTable td:first-child,.lbTable th:first-child{width:2.2em;text-align:center;color:var(--ink2)}
+.lbTable tr.me td{background:rgba(176,125,34,.16)}
+.lbTable tr.me td.nm::after{content:" ★";color:var(--gold)}
+.lbTable .num{direction:ltr;unicode-bidi:isolate}
+.lbPlace{text-align:center;margin-top:6px;font-weight:700}
+.lbBox{border:1px dashed var(--ink2);border-radius:4px;padding:8px 10px;margin:4px 0 8px;background:rgba(255,255,255,.18)}
+.lbInvite{border-style:solid;border-color:var(--gold);text-align:center;font-weight:700}
+.lbRow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.lbRow input{user-select:text;-webkit-user-select:text;touch-action:manipulation;flex:1;min-width:120px;font:inherit;font-size:16px;padding:5px 8px;border:2px solid var(--ink);border-radius:4px;background:#fffaf0;color:var(--ink)}
+.lbRow button{font-size:14px}
+.lbCode{direction:ltr;unicode-bidi:isolate;font-weight:900;letter-spacing:1px;color:var(--ink)}

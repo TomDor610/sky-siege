@@ -5,7 +5,8 @@
 //   - a higher epoch (someone pressed "reset progress") wins outright;
 //   - otherwise every counter takes the max: coinsEarned, coinsSpent (coins = earned - spent),
 //     xp, upgrade levels, wins per difficulty; styles/unlocks are OR-ed;
-//   - best campaign times take the MIN (a lower time is a better record).
+//   - best campaign times take the MIN (a lower time is a better record);
+//   - nickname: this device's if set, else the cloud's; friends: union of both lists.
 // build/fort are choices, not progress: the most recently edited one wins (buildAt).
 
 const isObj=v=>v&&typeof v==='object'&&!Array.isArray(v);
@@ -20,6 +21,8 @@ export function normalizeProg(p){
   out.coinsEarned=num(out.coinsEarned);out.coinsSpent=num(out.coinsSpent);
   if(out.coinsEarned-out.coinsSpent!==out.coins)out.coinsEarned=out.coins+out.coinsSpent;
   out.epoch=num(out.epoch);out.xp=num(out.xp);
+  out.nick=typeof out.nick==='string'?out.nick:'';
+  out.friends=Array.isArray(out.friends)?out.friends.filter(f=>typeof f==='string'&&f):[];
   for(const k of ['upg','styles','unl','wins','duelWins','best'])if(!isObj(out[k]))out[k]={};
   return out;
 }
@@ -43,6 +46,8 @@ export function mergeProg(localRaw,remoteRaw){
   m.styles=orMap(a.styles,b.styles);
   m.unl=orMap(a.unl,b.unl);
   m.best=minTimes(a.best,b.best);
+  m.nick=a.nick||b.nick;                                   // a chosen nickname is never lost
+  m.friends=[...new Set([...a.friends,...b.friends])].slice(0,200); // friends from both devices
   return m;
 }
 

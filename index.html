@@ -42,7 +42,7 @@
   <div class="card">
     <div class="top">
       <h1>Sky Siege<small data-i18n="app.subtitle">דו-קרב הממציאים</small></h1>
-      <div style="text-align:center"><div class="coins">🪙 <span id="coinTxt">0</span></div><div class="small" id="rankTxt" style="margin-top:4px;font-weight:700"></div><div class="bar" style="height:6px;margin-top:2px"><i id="rankBar" style="background:var(--gold)"></i></div><div id="acctBadge" class="acctBadge hidden"></div><button id="langBtn" class="langBtn" data-i18n="lang.other">English</button></div>
+      <div style="text-align:center"><div class="coins">🪙 <span id="coinTxt">0</span></div><div class="small" id="rankTxt" style="margin-top:4px;font-weight:700"></div><div class="bar" style="height:6px;margin-top:2px"><i id="rankBar" style="background:var(--gold)"></i></div><div id="acctBadge" class="acctBadge hidden"></div><div class="hdrBtns"><button id="lbBtn" class="hdrBtn hidden" data-i18n="lb.btn">🏆 שיאים</button><button id="langBtn" class="langBtn" data-i18n="lang.other">English</button></div></div>
     </div>
     <div class="seg modeSeg" id="modeSeg"><button data-m="duel" data-i18n="mode.duel">⚔ דו-קרב מול בוט</button><button data-m="campaign" data-i18n="mode.campaign">🏰 קמפיין מצור</button></div>
     <div class="small" id="modeDesc" style="text-align:center"></div>
@@ -96,6 +96,27 @@
       <h2 style="margin-top:12px" data-i18n="shop.unlocksTitle">המצאות חדשות</h2>
       <div id="unlocks"></div>
       <div class="row" style="margin-top:16px"><button id="resetBtn" style="flex:0 0 auto;font-size:13px;opacity:.7" data-i18n="reset.btn">איפוס התקדמות</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="lbScreen" class="screen hidden">
+  <div class="card lbCard">
+    <div class="top"><h1 data-i18n="lb.title">🏆 שיאים</h1><button id="lbClose" data-i18n="lb.close">חזרה</button></div>
+    <div class="tabs" id="lbTabs"><button data-lbtab="friends" class="on" data-i18n="lb.friends">חברים</button><button data-lbtab="all" data-i18n="lb.all">כולם</button></div>
+    <div class="seg" id="lbViews"><button data-view="easy" class="on" data-i18n="lb.view.easy"></button><button data-view="medium" data-i18n="lb.view.medium"></button><button data-view="hard" data-i18n="lb.view.hard"></button><button data-view="duel" data-i18n="lb.view.duel"></button></div>
+    <div id="lbMsg" class="small lbMsg"></div>
+    <table class="lbTable"><thead><tr><th>#</th><th data-i18n="lb.col.name"></th><th data-i18n="lb.col.rank"></th><th id="lbColA"></th><th id="lbColB"></th></tr></thead><tbody id="lbBody"></tbody></table>
+    <div id="lbPlace" class="small lbPlace"></div>
+    <div id="lbInvite" class="lbBox lbInvite hidden"><div id="lbInviteTxt"></div><div class="row"><button id="lbInviteYes" class="buy" data-i18n="lb.add"></button><button id="lbInviteNo" data-i18n="lb.inviteNo"></button></div></div>
+    <h2 data-i18n="lb.meTitle"></h2>
+    <div id="lbMe" class="lbBox"></div>
+    <h2 data-i18n="lb.friendsTitle"></h2>
+    <div class="lbBox">
+      <div id="lbCode" class="small"></div>
+      <div class="lbRow"><button id="lbInviteBtn" data-i18n="lb.invite"></button></div>
+      <div class="lbRow"><input id="lbCodeIn" maxlength="12" autocomplete="off" spellcheck="false"><button id="lbAddBtn" data-i18n="lb.add"></button></div>
+      <div id="lbFriendMsg" class="small lbMsg"></div>
     </div>
   </div>
 </div>

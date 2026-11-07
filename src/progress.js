@@ -9,7 +9,8 @@ export function rankName(r){let n=RANKS[0][1];for(const [m,id] of RANKS)if(r>=m)
 export const upgMax=k=>ALLUPG[k].max||UPG_MAX;
 // coinsEarned/coinsSpent only ever grow (coins = earned - spent), so cloud merges can take the max
 // of each without refunding purchases; epoch grows on "reset progress" so a reset wins over old saves.
-export function freshProg(){return {coins:120,coinsEarned:120,coinsSpent:0,epoch:0,upg:{frame:0,wings:0,props:0,armor:0,weapons:0,workshop:0,stone:0,ballista:0,archers:0,mangonel:0},xp:0,styles:{classic:true},unl:{crossbow:false,greek:false,slot5:false},wins:{easy:0,medium:0,hard:0},duelWins:{easy:0,medium:0,hard:0},best:{}}}
+// nick/friends: leaderboard nickname (empty = not on the board) and friends' uids.
+export function freshProg(){return {coins:120,coinsEarned:120,coinsSpent:0,epoch:0,nick:'',friends:[],upg:{frame:0,wings:0,props:0,armor:0,weapons:0,workshop:0,stone:0,ballista:0,archers:0,mangonel:0},xp:0,styles:{classic:true},unl:{crossbow:false,greek:false,slot5:false},wins:{easy:0,medium:0,hard:0},duelWins:{easy:0,medium:0,hard:0},best:{}}}
 export function defaultBuild(){return {style:'classic',wings:2,props:2,armor:1,bombs:4,crossbows:0,bombType:'stone'};}
 export function defaultFort(){return {slots:['ballista',null,'archers',null,null],walls:0};}
 export function loadSaved(){

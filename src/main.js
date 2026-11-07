@@ -15,6 +15,8 @@ import {initSound,soundInfo} from './sound.js';
 import {initSoundUI} from './ui/sound-ui.js';
 import {initSync,info as syncInfo} from './sync/index.js';
 import {initCloudUI} from './ui/cloud-ui.js';
+import {initLeaderboard} from './leaderboard/index.js';
+import {initLeaderboardUI} from './ui/leaderboard-ui.js';
 import {mode} from './flow.js';
 import {initView,resize} from './view.js';
 initLang();
@@ -31,6 +33,8 @@ initSoundUI();
 $('langBtn').onclick=()=>setLang(getLang()==='he'?'en':'he');
 onLangChange(()=>{refreshBuild();renderControls();});
 initCloudUI();
+initLeaderboard();
+initLeaderboardUI();
 resize();refreshBuild();requestAnimationFrame(loop);
 // cloud save starts in the background; merges are applied only outside battles
 initSync({canApply:()=>mode!=='play'&&mode!=='pause',onApplied:()=>{if(mode==='menu')refreshBuild();}});

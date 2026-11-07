@@ -28,6 +28,10 @@ let hooks={canApply:()=>true,onApplied:()=>{}};
 const listeners=[];
 const setStatus=s=>{if(status!==s){status=s;listeners.forEach(f=>f(info()));}};
 export const onSyncChange=f=>listeners.push(f);
+// For the leaderboard: the same backend/user, and a callback after every successful sync.
+const syncedListeners=[];
+export const onSynced=f=>syncedListeners.push(f);
+export const cloud=()=>({backend,user});
 export function info(){return {status,uid:user&&user.uid,isAnonymous:user?user.isAnonymous:null,name:user&&user.name||'',dirty:meta.dirty,syncs};}
 
 function currentSave(){return {prog,build,fort,buildAt:meta.buildAt||0};}
@@ -63,6 +67,7 @@ async function syncOnce(){
   if(!sameSave(merged,remoteView))await backend.save(user.uid,{v:1,prog:merged.prog,build:merged.build,fort:merged.fort,buildAt:merged.buildAt});
   meta.dirty=false;saveMeta();syncs++;
   setStatus('saved');
+  for(const f of syncedListeners){try{f();}catch(e){}}
 }
 
 // Serialized: a sync requested while one is running runs once more afterwards.

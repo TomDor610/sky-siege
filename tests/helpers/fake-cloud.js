@@ -1,7 +1,7 @@
 // In-memory stand-in for the Firebase backend (same interface as src/sync/firebase.js).
 // Installed with page.addInitScript(installFakeCloud, init) before the game loads.
 // State lives in localStorage['__fakecloud'] so it survives reloads within a test:
-//   {docs:{uid:data}, user, online, delay, google:{uid,name}, googleCancel, n, saves, loads}
+//   {docs:{uid:data}, lb:{uid:row}, user, online, delay, google:{uid,name}, googleCancel, n, saves, loads, lbSaves}
 // Tests flip `online` or read `docs` through the helpers below.
 export function installFakeCloud(init) {
   const K = '__fakecloud';
@@ -34,7 +34,21 @@ export function installFakeCloud(init) {
       put(s); return s.user;
     },
     async signOut() { const s = get(); s.user = null; put(s); },
+
+    // ---- leaderboard: s.lb = {uid: row}
+    async lbSave(uid, row) {
+      await net();
+      const s = get();
+      if (!s.user || s.user.uid !== uid) throw Object.assign(new Error('permission-denied'), { code: 'permission-denied' });
+      s.lb = s.lb || {}; s.lb[uid] = { ...copy(row), updatedAt: Date.now() }; s.lbSaves = (s.lbSaves || 0) + 1; put(s);
+    },
+    async lbTop(view, n) { await net(); return lbRows().sort((a, b) => b.score[view] - a.score[view]).slice(0, n); },
+    async lbPlace(view, score) { await net(); return 1 + lbRows().filter(r => r.score[view] > score).length; },
+    async lbGet(uids) { await net(); return lbRows().filter(r => uids.includes(r.uid)); },
+    async lbFollowers(uid) { await net(); return lbRows().filter(r => (r.friends || []).includes(uid)).slice(0, 100); },
+    async lbByCode(code) { await net(); return lbRows().find(r => r.code === code) || null; },
   };
+  function lbRows() { return Object.entries(get().lb || {}).map(([uid, r]) => ({ uid, ...copy(r) })); }
 }
 
 export const cloudState = page => page.evaluate(() => JSON.parse(localStorage.getItem('__fakecloud')));

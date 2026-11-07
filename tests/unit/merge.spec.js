@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 import { mergeProg, mergeSave, normalizeProg, sameSave } from '../../src/sync/merge.js';
 
 const prog = (over = {}) => ({
-  coins: 120, coinsEarned: 120, coinsSpent: 0, epoch: 0, xp: 0,
+  coins: 120, coinsEarned: 120, coinsSpent: 0, epoch: 0, xp: 0, nick: '', friends: [],
   upg: { frame: 0, wings: 0, props: 0, armor: 0, weapons: 0, workshop: 0, stone: 0, ballista: 0, archers: 0, mangonel: 0 },
   styles: { classic: true }, unl: { crossbow: false, greek: false, slot5: false },
   wins: { easy: 0, medium: 0, hard: 0 }, duelWins: { easy: 0, medium: 0, hard: 0 }, best: {},
@@ -57,6 +57,14 @@ test('saves from before the counters existed keep their coins', () => {
   const n = normalizeProg(legacy);
   expect([n.coins, n.coinsEarned, n.coinsSpent, n.epoch]).toEqual([777, 777, 0, 0]);
   expect(mergeProg(legacy, prog()).coins).toBe(777);
+});
+
+test('nickname is never lost and friends from both devices are kept', () => {
+  const m = mergeProg(prog({ nick: '', friends: ['a', 'b'] }), prog({ nick: 'Tom', friends: ['b', 'c'] }));
+  expect(m.nick).toBe('Tom');
+  expect(m.friends.sort()).toEqual(['a', 'b', 'c']);
+  expect(mergeProg(prog({ nick: 'Dana' }), prog({ nick: 'Tom' })).nick).toBe('Dana'); // this device wins
+  expect(normalizeProg({ coins: 5 }).friends).toEqual([]);
 });
 
 test('the most recently edited build and defenses win', () => {

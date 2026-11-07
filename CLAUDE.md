@@ -41,6 +41,8 @@
 | `sound.js` | צלילים ב-Web Audio בלי קבצים: `sfx(name,{x,...})` לאפקטים (עוצמה ו-pan לפי מרחק מהמצלמה, הגבלת קצב וקולות), מוזיקת לאוטה בסולם דורי (`setMusicMode`). **אסור לו לגעת במצב המשחק או ב-`Math.random`** (יש לו PRNG משלו) |
 | `ui/sound-ui.js` | כפתור 🔊/🔇 בקרב (וגם מקש M) ומתגי אפקטים/מוזיקה בסדנה |
 | `sync/` | שמירה בענן, offline-first. `index.js`: התחברות (אנונימית/Google), בכל סנכרון קריאה, `mergeSave`, החלה מקומית וכתיבה בחזרה ל-`users/{uid}`; ניסיון חוזר כשהרשת חוזרת; מיזוג מוחל רק מחוץ לקרב. `merge.js`: כללי המיזוג (פונקציות טהורות). `firebase.js`: ה-backend האמיתי (Auth + `firestore/lite`), נטען רק כשיש config. `config.js`: ה-firebaseConfig (`null` = כבוי) |
+| `leaderboard/` | טבלת שיאים. `rows.js` (טהור): בניית השורה מההתקדמות (`buildRow`), ציון מיון בשדה אחד (`campaignScore`), בדיקת כינוי, קוד חבר (`codeOf` = 8 תווים ראשונים של ה-uid). `index.js`: פרסום השורה אחרי כל סנכרון מוצלח (רק כשהשתנתה, לכל היותר פעם ב-25 שניות), טעינת חברים/כולם עם מטמון של דקה, הוספת חבר, קישור הזמנה `?friend=CODE` |
+| `ui/leaderboard-ui.js` | מסך "🏆 שיאים": לשוניות חברים/כולם, בורר קמפיין קל/בינוני/קשה/דו-קרב, כינוי, קוד חבר והזמנה |
 | `ui/cloud-ui.js` | שורת מצב הענן וכפתור Google/התנתק בסדנה |
 | `flow.js` | ‏`start`, `pause`, `finish` (מסך תוצאה ומטבעות), `loop` |
 | `main.js` | אתחול לפי סדר קבוע ו-`window.__sky` |
@@ -59,8 +61,8 @@
 - **ציור:** `drawMachine`, `drawCastle`, `drawSky`, `drawGround`, `paperOverlay` (מרקם נייר ב-multiply ו-vignette), ופונקציות קו "ביד": `sk`, `skRect`, `hsh`.
 
 ### שמירה (localStorage)
-מפתחות: `skysiege_prog`, `skysiege_build2`, `skysiege_fort`, `skysiege_diff`, `skysiege_mode`, `skysiege_tutorial` (`done`/`skipped`; ההדרכה מופיעה רק לשחקן בלי XP ובלי ניצחונות, ורק עד שהמפתח קיים), `skysiege_sound` (`{muted,sfx,music}`, ברירת מחדל: הכול פועל), `skysiege_sync` (`{buildAt,dirty}`, רישום מקומי של הסנכרון), `skysiege_lang` (`he`/`en`; אם לא נבחר: עברית למי שיש לו `skysiege_prog`, אחרת לפי שפת הדפדפן).
-**מטבעות:** כל שינוי עובר דרך `earnCoins(n)`/`spendCoins(n)`, שמעדכנים גם את `coinsEarned`/`coinsSpent` (רק עולים; `coins = earned − spent`). `epoch` עולה ב"איפוס התקדמות". כך מיזוג "תמיד הגבוה" לא מחזיר כסף על קניות ואיפוס לא נדרס.
+מפתחות: `skysiege_prog`, `skysiege_build2`, `skysiege_fort`, `skysiege_diff`, `skysiege_mode`, `skysiege_tutorial` (`done`/`skipped`; ההדרכה מופיעה רק לשחקן בלי XP ובלי ניצחונות, ורק עד שהמפתח קיים), `skysiege_sound` (`{muted,sfx,music}`, ברירת מחדל: הכול פועל), `skysiege_sync` (`{buildAt,dirty}`, רישום מקומי של הסנכרון), `skysiege_lb` (השורה האחרונה שפורסמה) ו-`skysiege_lbcache_*` (תוצאות אחרונות להצגה בלי רשת), `skysiege_lang` (`he`/`en`; אם לא נבחר: עברית למי שיש לו `skysiege_prog`, אחרת לפי שפת הדפדפן).
+**מטבעות:** כל שינוי עובר דרך `earnCoins(n)`/`spendCoins(n)`, שמעדכנים גם את `coinsEarned`/`coinsSpent` (רק עולים; `coins = earned − spent`). `epoch` עולה ב"איפוס התקדמות". `nick` (כינוי בטבלה, ריק = לא בטבלה) ו-`friends` (uid-ים) נשמרים ב-`prog` ומתמזגים בענן (כינוי לא הולך לאיבוד, חברים באיחוד). כך מיזוג "תמיד הגבוה" לא מחזיר כסף על קניות ואיפוס לא נדרס.
 **חובה לשמור תאימות לאחור.** שחקנים אמיתיים כבר משחקים. כל שדה חדש נכנס דרך `freshProg()` ו-`Object.assign` בזמן הטעינה, ואסור לאפס להם התקדמות.
 
 ### ממשק לבדיקות
@@ -72,6 +74,7 @@
 - `sound.spec.js`: עם שמע פעיל הטייס האוטומטי עדיין זהה ל-baseline, המוזיקה עוברת בין המסכים, וההשתקה והמתגים נשמרים.
 - `i18n.spec.js`: אותם מפתחות ואותם משתנים בשתי השפות, כל מפתח בשימוש וכל שימוש קיים; קרבות באנגלית זהים ל-baseline ובלי אף אות עברית (מסכים, הודעות צפות, טקסט שיתוף); בחירת שפה ושמירתה.
 - `cloud.spec.js`: שמירה בענן מול backend מדומה (`helpers/fake-cloud.js`): העלאה ראשונה בלי איבוד, מיזוג עם ענן קיים, עבודה בלי רשת והעלאה כשחוזרת, Google, מיזוג שמגיע באמצע קרב. `unit/merge.spec.js`: כללי המיזוג (כולל בדיקת תכונות על 500 מקרים).
+- `leaderboard.spec.js`: מסך השיאים מול ה-backend המדומה (כינוי, כולם, דו-קרב, חברים לפי קוד ומי שהוסיף אותי, קישור הזמנה, יציאה מהטבלה, בלי רשת, אנגלית). `unit/leaderboard.spec.js`: השורה, הציונים והכינוי.
 - `rules/firestore.rules.spec.js`: ה-Security Rules מול Firebase Emulator. מריצים `npm run test:rules` (דורש Java; ב-CI רץ אוטומטית).
 - `screens.spec.js`: צילומי מסך בטלפון 844x390 ו-390x844, בעברית ובאנגלית, שנשמרים ל-`tests/screenshots/`. בודק גם שכפתורי ה-HUD לא מסתירים צגים.
 - **`baseline.json`** נרשם מהגרסה המקורית (commit `a8bd6f9`). שינוי מכוון במשחקיות או באיזון ישבור את בדיקת ה-baseline, וזה צפוי. אחרי שמוודאים שהשינוי רצוי, מייצרים מחדש: `node tests/tools/make-baseline.mjs http://localhost:5173/` (כששרת הפיתוח רץ).

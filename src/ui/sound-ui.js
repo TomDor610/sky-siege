@@ -19,7 +19,7 @@ export function initSoundUI(){
   // turning a channel on from the workshop also lifts a global mute
   $('sfxToggle').onclick=()=>{const s=soundSettings(),now=s.sfx&&!s.muted;setSound({sfx:!now,muted:false});};
   $('musicToggle').onclick=()=>{const s=soundSettings(),now=s.music&&!s.muted;setSound({music:!now,muted:false});};
-  addEventListener('keydown',e=>{if((e.key==='m'||e.key==='M')&&!e.repeat)setSound({muted:!soundSettings().muted});});
+  addEventListener('keydown',e=>{if(e.target&&/^(INPUT|TEXTAREA)$/.test(e.target.tagName))return;if((e.key==='m'||e.key==='M')&&!e.repeat)setSound({muted:!soundSettings().muted});});
   onSoundChange(render);
   onLangChange(()=>render(soundSettings()));
   render(soundSettings());
