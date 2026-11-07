@@ -90,10 +90,18 @@ export function syncResume(){
     apply(mergeSave(currentSave(),m));schedule();}
 }
 
+// "Save progress to your Google account": links the anonymous account (same uid, nothing
+// moves). If that Google account already has a save from another device, the backend signs
+// into it instead and the sync below merges both progressions (always the higher values).
+const CANCELLED=/popup-closed-by-user|cancelled-popup-request|user-cancelled/;
 export async function signInGoogle(){
   if(!backend)return;
+  const before=status;
   try{setStatus('syncing');user=await backend.signInGoogle();await syncNow();}
-  catch(e){setStatus('error');throw e;}
+  catch(e){
+    if(CANCELLED.test(String(e&&e.code))){setStatus(before);return;} // closed the window: no harm done
+    setStatus('error');throw e;
+  }
 }
 export async function signOutCloud(){
   if(!backend)return;

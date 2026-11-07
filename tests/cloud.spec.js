@@ -20,6 +20,7 @@ test('without a Firebase config cloud save is off and hidden', async ({ page }) 
   const errors = await openGame(page);
   expect((await cloudStatus(page)).status).toBe('off');
   await expect(page.locator('#cloudBox')).toBeHidden();
+  await expect(page.locator('#acctBadge')).toBeHidden();
   expect(errors).toEqual([]);
 });
 
@@ -34,7 +35,8 @@ test('first launch: the local progress goes up to the cloud without losing anyth
   expect(doc.fort.slots).toHaveLength(5);
   expect((await localProg(page)).coins).toBe(777); // nothing changed locally
   await expect(page.locator('#cloudStatus')).toHaveText('☁ נשמר בענן');
-  await expect(page.locator('#googleBtn')).toHaveText('התחבר עם Google כדי לשחק בכל מכשיר');
+  await expect(page.locator('#googleBtn')).toHaveText('שמור התקדמות בחשבון Google');
+  await expect(page.locator('#acctBadge')).toHaveText('אורח');
   expect(errors).toEqual([]);
 });
 
@@ -92,17 +94,42 @@ test('offline: the game works, saves locally and uploads once back online', asyn
   expect(doc.prog.duelWins.easy).toBe(1);
 });
 
-test('Google sign-in keeps the same progress (anonymous account is linked)', async ({ page }) => {
+test('"Save progress to your Google account" links the guest account and keeps the progress', async ({ page }) => {
   await seedLocal(page, VETERAN);
   await page.addInitScript(installFakeCloud, {});
   const errors = await openGame(page);
   await waitStatus(page, 'saved');
+  const badge = page.locator('#acctBadge');
+  await expect(badge).toHaveText('אורח');
+  await expect(badge).toHaveClass(/guest/);
+  await expect(page.locator('#googleBtn')).toHaveText('שמור התקדמות בחשבון Google');
   await page.click('#googleBtn');
+  await expect(badge).toHaveText('שמור בענן ✓');
+  await expect(badge).toHaveClass(/cloud/);
+  await expect(badge).toHaveAttribute('title', /Test Player/);
   await expect(page.locator('#cloudStatus')).toHaveText('☁ נשמר בענן · Test Player');
   const c = await cloudStatus(page);
   expect([c.uid, c.isAnonymous]).toEqual(['anon-1', false]);
   await expect(page.locator('#googleBtn')).toHaveText('התנתק');
   expect((await localProg(page)).coins).toBe(777);
+  // same uid -> the cloud copy is the same document, still holding everything
+  expect((await cloudState(page)).docs['anon-1'].prog).toMatchObject({ coins: 777, xp: 300, upg: { frame: 2 } });
+  // the badge survives a reload (the Google session is remembered)
+  await page.reload();
+  await page.waitForFunction(() => !!window.__sky);
+  await expect(badge).toHaveText('שמור בענן ✓');
+  expect(errors).toEqual([]);
+});
+
+test('closing the Google window changes nothing and shows no error', async ({ page }) => {
+  await page.addInitScript(installFakeCloud, { googleCancel: true });
+  const errors = await openGame(page);
+  await waitStatus(page, 'saved');
+  await page.click('#googleBtn');
+  await waitStatus(page, 'saved');
+  await expect(page.locator('#cloudStatus')).toHaveText('☁ נשמר בענן');
+  await expect(page.locator('#acctBadge')).toHaveText('אורח');
+  expect((await cloudStatus(page)).isAnonymous).toBe(true);
   expect(errors).toEqual([]);
 });
 
@@ -115,6 +142,7 @@ test('Google sign-in on a second device merges with the progress saved on that a
   await page.click('#googleBtn');
   await expect(page.locator('#cloudStatus')).toHaveText('☁ נשמר בענן · Tom');
   expect((await cloudStatus(page)).uid).toBe('google-1');
+  await expect(page.locator('#acctBadge')).toHaveText('שמור בענן ✓');
   const p = await localProg(page);
   expect([p.coinsEarned, p.coinsSpent, p.coins, p.xp, p.upg.armor]).toEqual([1000, 100, 900, 800, 3]);
   expect((await cloudState(page)).docs['google-1'].prog.upg.armor).toBe(3);
@@ -143,6 +171,7 @@ test.describe('in English', () => {
     await openGame(page);
     await waitStatus(page, 'saved');
     await expect(page.locator('#cloudStatus')).toHaveText('☁ Saved to the cloud');
-    await expect(page.locator('#googleBtn')).toHaveText('Sign in with Google to play on any device');
+    await expect(page.locator('#googleBtn')).toHaveText('Save progress to your Google account');
+    await expect(page.locator('#acctBadge')).toHaveText('Guest');
   });
 });

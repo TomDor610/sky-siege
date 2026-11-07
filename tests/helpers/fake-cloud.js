@@ -1,7 +1,7 @@
 // In-memory stand-in for the Firebase backend (same interface as src/sync/firebase.js).
 // Installed with page.addInitScript(installFakeCloud, init) before the game loads.
 // State lives in localStorage['__fakecloud'] so it survives reloads within a test:
-//   {docs:{uid:data}, user, online, delay, google:{uid,name}, n, saves, loads}
+//   {docs:{uid:data}, user, online, delay, google:{uid,name}, googleCancel, n, saves, loads}
 // Tests flip `online` or read `docs` through the helpers below.
 export function installFakeCloud(init) {
   const K = '__fakecloud';
@@ -28,6 +28,7 @@ export function installFakeCloud(init) {
     // like linkWithPopup: keep the anonymous uid unless that Google account already has a save
     async signInGoogle() {
       await net();
+      if (get().googleCancel) throw Object.assign(new Error('closed'), { code: 'auth/popup-closed-by-user' });
       const s = get(), g = s.google || { uid: 'google-1', name: 'Test Player' };
       s.user = s.user && s.user.isAnonymous && !s.docs[g.uid] ? { ...s.user, isAnonymous: false, name: g.name } : { uid: g.uid, isAnonymous: false, name: g.name };
       put(s); return s.user;

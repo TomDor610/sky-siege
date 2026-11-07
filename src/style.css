@@ -115,3 +115,7 @@ html[dir=ltr] #hudBtns{left:auto;right:10px;direction:rtl}
 /* Cloud save (src/ui/cloud-ui.js) */
 .cloudBox{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:center;margin:10px auto 0;max-width:520px;text-align:center}
 .cloudBox button{font-size:14px;padding:4px 12px}
+/* account badge under the rank (src/ui/cloud-ui.js) */
+.acctBadge{width:fit-content;margin:6px auto 0;font-size:12.5px;font-weight:700;padding:1px 9px;border-radius:10px;border:1.5px solid var(--ink2);color:var(--ink2);white-space:nowrap}
+.acctBadge.guest{border-style:dashed}
+.acctBadge.cloud{color:var(--green);border-color:var(--green);background:rgba(79,107,44,.08)}

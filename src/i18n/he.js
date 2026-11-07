@@ -236,7 +236,11 @@ export default {
   'cloud.savedAs': '☁ נשמר בענן · {name}',
   'cloud.offline': '☁ לא מחובר: נשמר במכשיר',
   'cloud.error': '☁ הסנכרון נכשל: נשמר במכשיר',
-  'cloud.google': 'התחבר עם Google כדי לשחק בכל מכשיר',
+  'cloud.google': 'שמור התקדמות בחשבון Google',
+  'cloud.badgeCloud': 'שמור בענן ✓',
+  'cloud.badgeCloudTitle': 'ההתקדמות שמורה בחשבון Google שלך ({name}) ותופיע בכל מכשיר שתתחבר ממנו',
+  'cloud.badgeGuest': 'אורח',
+  'cloud.badgeGuestTitle': 'משחק כאורח: ההתקדמות שמורה רק למכשיר הזה. שמור אותה בחשבון Google כדי לשחק בכל מכשיר',
   'cloud.signOut': 'התנתק',
 
   // ---- sound controls

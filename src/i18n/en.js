@@ -237,7 +237,11 @@ export default {
   'cloud.savedAs': '☁ Saved to the cloud · {name}',
   'cloud.offline': '☁ Offline: saved on this device',
   'cloud.error': '☁ Sync failed: saved on this device',
-  'cloud.google': 'Sign in with Google to play on any device',
+  'cloud.google': 'Save progress to your Google account',
+  'cloud.badgeCloud': 'Saved to cloud ✓',
+  'cloud.badgeCloudTitle': 'Your progress is saved to your Google account ({name}) and follows you to any device you sign in on',
+  'cloud.badgeGuest': 'Guest',
+  'cloud.badgeGuestTitle': 'Playing as a guest: progress is tied to this device. Save it to your Google account to play anywhere',
   'cloud.signOut': 'Sign out',
 
   // ---- sound controls
