@@ -1,9 +1,10 @@
 // Screen flow: start, pause, finish/results and the main loop.
 import {castleSpec} from './castle.js';
-import {BOT,DEF,DIFF,RANK_MAX,STYLES} from './data.js';
+import {RANK_MAX} from './data.js';
 import {paperOverlay} from './draw/paper.js';
 import {render} from './draw/render.js';
 import {newGame,update} from './game.js';
+import {t} from './i18n/index.js';
 import {input,isTouch} from './input.js';
 import {myRank,rankName,sanitize,saveProg,xpFor} from './progress.js';
 import {G,build,prog,setG} from './state.js';
@@ -21,8 +22,8 @@ export function start(){
   newGame();resetHud();mode='play';show(null);setPlayUI(true);resize();
   for(const k in input)input[k]=false;
   const tip=$('tip');
-  const ctl=(isTouch?'▲▼ גובה · ⟲ סיבוב · 💣 פצצה':'↑↓ גובה · ←→ סיבוב · רווח = פצצה')+(build.crossbows>0?(isTouch?' · 🏹 קשת':' · X = קשת'):'');
-  tip.textContent=G.duel?`הפל את הטירה של היריב לפני שהוא מפיל את שלך · ${ctl} · חימוש מעל הטירה שלך`:(G.spec.newest?`טירה רמה ${G.spec.lvl} · חדש: ${DEF[G.spec.newest].name}! · `:'')+ctl+' · חזור למגדל כדי לחמש';
+  const dev=isTouch?'touch':'keys',ctl=t('tip.ctl.'+dev)+(build.crossbows>0?t('tip.bow.'+dev):'');
+  tip.textContent=G.duel?t('tip.duel',{ctl}):(G.spec.newest?t('tip.newLevel',{lvl:G.spec.lvl,name:t(`def.${G.spec.newest}.name`)}):'')+t('tip.campaign',{ctl});
   tip.classList.remove('hidden');tip.style.opacity=1;clearTimeout(tipTimer);
   tipTimer=setTimeout(()=>{tip.style.opacity=0;setTimeout(()=>tip.classList.add('hidden'),700);},6000);
   tutorialBegin();
@@ -35,13 +36,13 @@ export function finish(){
   G.state=G.state==='won'?'wonDone':'lostDone';const won=G.state==='wonDone';sfx(won?'win':'lose');setMusicMode('menu');duckMusic(false);
   tutorialEnd();mode='result';setPlayUI(false);$('tip').classList.add('hidden');
   const foe=G.foe,pct=Math.round(100*(1-Math.max(0,foe.hp)/foe.max));
-  const lines=[[G.duel?`נזק לטירת היריב (${pct}%)`:`נזק לטירה (${pct}%)`,Math.round(pct*0.8)]];
-  if(G.killedDefs)lines.push([`הגנות שהושמדו (${G.killedDefs})`,15*G.killedDefs]);
-  if(G.duel&&G.botDowns)lines.push([`מכונות יריב שהופלו (${G.botDowns})`,25*G.botDowns]);
+  const lines=[[G.duel?t('res.dmgFoe',{pct}):t('res.dmg',{pct}),Math.round(pct*0.8)]];
+  if(G.killedDefs)lines.push([t('res.defs',{n:G.killedDefs}),15*G.killedDefs]);
+  if(G.duel&&G.botDowns)lines.push([t('res.botDowns',{n:G.botDowns}),25*G.botDowns]);
   if(won){
-    lines.push(['ניצחון',G.duel?100:60]);
-    if(G.duel){const kept=Math.round(100*Math.max(0,G.mine.hp)/G.mine.max);if(kept)lines.push([`הטירה שלך שרדה (${kept}%)`,Math.round(kept*0.4)]);}
-    else{const sp=Math.max(0,Math.round(90-G.winTime));if(sp)lines.push(['בונוס מהירות',sp]);if(G.me.hp>=G.me.st.hp*0.5)lines.push(['מכונה כמעט שלמה',20]);}
+    lines.push([t('res.victory'),G.duel?100:60]);
+    if(G.duel){const kept=Math.round(100*Math.max(0,G.mine.hp)/G.mine.max);if(kept)lines.push([t('res.kept',{pct:kept}),Math.round(kept*0.4)]);}
+    else{const sp=Math.max(0,Math.round(90-G.winTime));if(sp)lines.push([t('res.speed'),sp]);if(G.me.hp>=G.me.st.hp*0.5)lines.push([t('res.intact'),20]);}
   }
   if(G.quit)lines.length=1,lines[0][1]=Math.round(lines[0][1]/2);
   const sub=lines.reduce((a,l)=>a+l[1],0),total=Math.round(sub*G.mult);
@@ -56,28 +57,29 @@ export function finish(){
   saveProg();$('copyMsg').textContent='';
   if(G.duel){
     const myPct=Math.round(100*Math.max(0,G.mine.hp)/G.mine.max);
-    if(won){$('resTitle').textContent=G.timeUp?'ניצחון בנקודות!':'ניצחון בדו-קרב! ⚔';
-      $('resText').textContent=G.timeUp?`נגמר הזמן: לטירה שלך נשארו ${myPct}% ולטירת היריב ${100-pct}%. הבוט ה${BOT[G.diff].name} יתחזק בפעם הבאה.`:`הפלת את טירת הבוט ה${BOT[G.diff].name} תוך ${G.winTime.toFixed(0)} שניות, ולטירה שלך נשארו ${myPct}%.`;
-      shareText=`ניצחתי בדו-קרב ב-Sky Siege מול בוט ${BOT[G.diff].name} תוך ${G.winTime.toFixed(0)} שניות, והטירה שלי שרדה עם ${myPct}%. נראה אותך 😏`;}
-    else{$('resTitle').textContent=G.quit?'פרשת מהקרב':G.timeUp?'הפסד בנקודות':'הטירה שלך נפלה';
-      $('resText').textContent=G.quit?'חצי מהמטבעות על הנזק נשמרו.':G.timeUp?`נגמר הזמן: לטירה שלך נשארו ${myPct}% ולטירת היריב ${100-pct}%.`:`הספקת להרוס ${pct}% מטירת היריב. אולי כדאי לחלק אחרת את הנקודות בין המכונה להגנות?`;
-      shareText=`הרסתי ${pct}% מטירת הבוט ב-Sky Siege לפני שהטירה שלי נפלה. אתה תצליח יותר?`;}
+    const d=t(`diff.${G.diff}.inline`);
+    if(won){const s=G.winTime.toFixed(0);$('resTitle').textContent=G.timeUp?t('res.winPoints'):t('res.winDuel');
+      $('resText').textContent=G.timeUp?t('res.winPointsText',{mine:myPct,foe:100-pct,d}):t('res.winDuelText',{d,s,mine:myPct});
+      shareText=t('share.winDuel',{d:t(`diff.${G.diff}.name`),s,mine:myPct});}
+    else{$('resTitle').textContent=G.quit?t('res.quit'):G.timeUp?t('res.losePoints'):t('res.castleFell');
+      $('resText').textContent=G.quit?t('res.quitText'):G.timeUp?t('res.losePointsText',{mine:myPct,foe:100-pct}):t('res.castleFellText',{pct});
+      shareText=t('share.loseDuel',{pct});}
   }else if(won){
-    $('resTitle').textContent=rec?'ניצחון! 🏆 שיא חדש':'ניצחון!';
+    $('resTitle').textContent=rec?t('res.winRecord'):t('res.win');
     const nx=castleSpec(G.diff,G.foe.lvl+1);
-    $('resText').textContent=`טירה רמה ${G.foe.lvl} (${DIFF[G.diff].name}) נפלה תוך ${G.winTime.toFixed(1)} שניות. הבאה: רמה ${nx.lvl}, חוזק ${nx.castleHP}${nx.newest?', וחדש: '+DEF[nx.newest].name:''}.`;
-    shareText=`הפלתי טירה רמה ${G.foe.lvl} ב-Sky Siege תוך ${G.winTime.toFixed(1)} שניות עם "${STYLES[build.style].name}" שבניתי. נראה אותך 😏`;
+    $('resText').textContent=t('res.winText',{lvl:G.foe.lvl,d:t(`diff.${G.diff}.name`),s:G.winTime.toFixed(1),next:nx.lvl,hp:nx.castleHP,newPart:nx.newest?t('res.nextNew',{name:t(`def.${nx.newest}.name`)}):''});
+    shareText=t('share.win',{lvl:G.foe.lvl,s:G.winTime.toFixed(1),style:t(`style.${build.style}.name`)});
   }else{
-    $('resTitle').textContent=G.quit?'פרשת מהקרב':'המכונה הופלה';
-    $('resText').textContent=G.quit?'חצי מהמטבעות על הנזק נשמרו.':`${G.me.reason||'המכונה הושמדה'}. הספקת להרוס ${pct}% מהטירה. המטבעות שלך, אז אולי זה הזמן לשדרג?`;
-    shareText=`הרסתי ${pct}% מטירה רמה ${G.foe.lvl} ב-Sky Siege. אתה תצליח יותר?`;
+    $('resTitle').textContent=G.quit?t('res.quit'):t('res.downed');
+    $('resText').textContent=G.quit?t('res.quitText'):t('res.downedText',{reason:t(G.me.reason||'reason.destroyed'),pct});
+    shareText=t('share.lose',{pct,lvl:G.foe.lvl});
   }
   let html='';for(const [n,v] of lines)html+=`<div><span>${n}</span><span>${v}</span></div>`;
-  if(G.mult!==1)html+=`<div><span>מכפיל קושי ורמה</span><span>×${G.mult.toFixed(2)}</span></div>`;
-  html+=`<div class="tot"><span>הרווחת</span><span>+${total} 🪙</span></div><div style="border:none"><span>יתרה</span><span>${prog.coins} 🪙</span></div>`;
-  html+=`<div style="border:none"><span>ניסיון</span><span>+${xpGain} ⭐</span></div>`;
-  if(r1>r0)html+=`<div class="tot" style="color:var(--green)"><span>עלית לדרגה ${r1} · ${rankName(r1)}!</span><span>+${5*(r1-r0)} 🔨</span></div>`;
-  else if(r1<RANK_MAX)html+=`<div style="border:none;font-size:13px;color:var(--ink2)"><span>לדרגה ${r1+1}</span><span>עוד ${xpFor(r1+1)-prog.xp} ⭐</span></div>`;
+  if(G.mult!==1)html+=`<div><span>${t('res.mult')}</span><span>×${G.mult.toFixed(2)}</span></div>`;
+  html+=`<div class="tot"><span>${t('res.earned')}</span><span>+${total} 🪙</span></div><div style="border:none"><span>${t('res.balance')}</span><span>${prog.coins} 🪙</span></div>`;
+  html+=`<div style="border:none"><span>${t('res.xp')}</span><span>+${xpGain} ⭐</span></div>`;
+  if(r1>r0)html+=`<div class="tot" style="color:var(--green)"><span>${t('res.rankUp',{r:r1,name:rankName(r1)})}</span><span>+${5*(r1-r0)} 🔨</span></div>`;
+  else if(r1<RANK_MAX)html+=`<div style="border:none;font-size:13px;color:var(--ink2)"><span>${t('res.toRank',{r:r1+1})}</span><span>${t('res.xpLeft',{xp:xpFor(r1+1)-prog.xp})}</span></div>`;
   $('earn').innerHTML=html;show('resultScreen');
 }
 export function loop(now){
@@ -94,6 +96,6 @@ $('pauseBtn').onclick=pause;
 $('resumeBtn').onclick=()=>{mode='play';show(null);last=performance.now();duckMusic(false);};
 $('quitBtn').onclick=()=>{if(G&&G.state==='play'){G.quit=true;G.state='lost';finish();}else toMenu();};
 $('launchBtn').onclick=start;$('againBtn').onclick=start;$('rebuildBtn').onclick=toMenu;
-$('copyBtn').onclick=async()=>{try{await navigator.clipboard.writeText(shareText);$('copyMsg').textContent='הועתק! אפשר להדביק בוואטסאפ.';}catch(e){$('copyMsg').textContent=shareText;}};
+$('copyBtn').onclick=async()=>{try{await navigator.clipboard.writeText(shareText);$('copyMsg').textContent=t('res.copied');}catch(e){$('copyMsg').textContent=shareText;}};
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
 }

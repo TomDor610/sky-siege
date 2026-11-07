@@ -1,4 +1,4 @@
-// First-battle tutorial: Hebrew speech bubbles that react to what the player does
+// First-battle tutorial: speech bubbles (he/en) that react to what the player does
 // (climb, descend, flip, bomb, rearm), with a skip button.
 //
 // Shown once: completing, skipping or finishing the first battle stores
@@ -6,6 +6,7 @@
 // see it. The tutorial only READS game state and never calls Math.random, so it
 // cannot change the simulation (the baseline tests run with it active).
 import {G,prog} from '../state.js';
+import {t} from '../i18n/index.js';
 import {isTouch} from '../input.js';
 import {$,store} from '../util.js';
 
@@ -24,15 +25,12 @@ function isFreshPlayer(){
 }
 
 function text(k){
-  const duel=G.duel;
+  const mode=G.duel?'duel':'siege',dev=isTouch?'touch':'keys';
   switch(k){
-    case 'climb':return isTouch?'החזק ▲ כדי לטפס':'החזק ↑ כדי לטפס';
-    case 'descend':return isTouch?'עכשיו החזק ▼ כדי לרדת':'עכשיו החזק ↓ כדי לרדת';
-    case 'flip':return isTouch?'לחץ ⟲ כדי להסתובב לאחור':'לחץ ← כדי להסתובב לאחור (ו-→ כדי לחזור)';
-    case 'bomb':return `טוס אל ${duel?'טירת היריב':'הטירה'} (החץ האדום מראה לאן) ולחץ ${isTouch?'💣':'רווח'} כשאתה מעליה`;
-    case 'praise':return 'יפה! המשך להפציץ עד שהפצצות ייגמרו';
-    case 'rearm':return duel?'נגמרו הפצצות! חזור אל מעל הטירה שלך, לתוך המסגרת הירוקה, כדי לחמש':'נגמרו הפצצות! חזור אל מעל מגדל הבית, לתוך המסגרת הירוקה, כדי לחמש';
-    case 'done':return 'מעולה, אתה מוכן! עכשיו הפל את הטירה 🏰';
+    case 'climb':case 'descend':case 'flip':return t(`tut.${k}.${dev}`);
+    case 'bomb':return t('tut.bomb',{target:t('tut.target.'+mode),key:t('tut.bombKey.'+dev)});
+    case 'rearm':return t('tut.rearm.'+mode);
+    case 'praise':case 'done':return t('tut.'+k);
   }
   return '';
 }
@@ -44,7 +42,7 @@ function render(view){
   if(!view){box.classList.add('hidden');return;}
   if(T&&!T.seen.includes(view))T.seen.push(view);
   const i=ORDER.indexOf(view);
-  $('tutStep').textContent=i>=0?`הדרכה ${i+1}/${ORDER.length}`:'הדרכה';
+  $('tutStep').textContent=i>=0?t('tut.step',{i:i+1,n:ORDER.length}):t('tut.title');
   $('tutTxt').textContent=text(view);
   box.classList.remove('hidden');
   if(BTN[view]){const b=document.querySelector(`.tbtn[data-k="${BTN[view]}"]`);if(b)b.classList.add('tut');}

@@ -1,6 +1,7 @@
 // Castles, defenses and castle damage.
 import {BASE_HEIGHTS,BOLT_G,BOLT_SPEED,COL,CW,DEF,DIFF,FREE_COLS,LEVEL_ADDS,POT_G,SLOT_COLS,WORLD} from './data.js';
 import {floater,spark} from './effects.js';
+import {t} from './i18n/index.js';
 import {foeOf,planeDir} from './physics.js';
 import {G,difficulty,prog} from './state.js';
 import {sfx} from './sound.js';
@@ -15,7 +16,7 @@ export function castleSpec(diff,lvl){
   const heights=BASE_HEIGHTS.map((h,i)=>{const tower=i<=1||i>=9,keep=i>=4&&i<=6;return Math.min(11,h+(tower?Math.floor(g/2):keep?Math.floor((g+1)/3):Math.floor(g/3)));});
   return Object.assign({},d0,{lvl,defs,newest,heights,castleHP:Math.round(d0.castleHP*(1+0.3*g)),ai:{fire:d0.fire*Math.max(0.5,1-0.06*g),spread:d0.spread*Math.max(0.45,1-0.07*g),lead:Math.min(1,d0.lead+0.1*g)},mult:d0.mult*(1+0.15*g)});
 }
-export function defsSummary(spec){const c={};for(const d of spec.defs)c[d.type]=(c[d.type]||0)+1;return Object.keys(c).map(k=>c[k]>1?`${c[k]} ${DEF[k].plural}`:DEF[k].name).join(', ');}
+export function defsSummary(spec){const c={};for(const d of spec.defs)c[d.type]=(c[d.type]||0)+1;return Object.keys(c).map(k=>t(`def.${k}.count`,{n:c[k]})).join(t('list.sep'));}
 export function makeCastle(o){
   return {side:o.side,x0:o.x0,heights:o.heights.slice(),base:o.heights.slice(),hp:o.hp,max:o.hp,ai:o.ai,lvl:o.lvl||1,label:o.label,tint:o.tint||0,bands:!!o.bands,banners:o.banners||0,
     color:o.side==='L'?'#4f6b2c':'#a3341f',mods:o.mods||{ballista:0,archers:0,mangonel:0},
@@ -27,7 +28,7 @@ export const colTop=(c,i)=>WORLD.ground-c.heights[i]*COL;
 export const castleTop=c=>WORLD.ground-Math.max(...c.heights)*COL;
 export const castleMid=c=>c.x0+CW/2;
 export function hitsCastle(c,x,y){if(x<c.x0||x>=c.x0+CW)return false;return y>=colTop(c,Math.floor((x-c.x0)/COL));}
-export function killDef(c,b){if(!b.alive)return;b.alive=false;spark(b.x,b.y,'splinter',18);sfx('defDown',{x:b.x});floater(b.x,b.y-40,'חוסל: '+DEF[b.type].name,c.side==='L'?'#a3341f':'#4f6b2c');c.hp-=10;if(c.side==='R')G.killedDefs++;}
+export function killDef(c,b){if(!b.alive)return;b.alive=false;spark(b.x,b.y,'splinter',18);sfx('defDown',{x:b.x});floater(b.x,b.y-40,t('fl.defDown',{name:t(`def.${b.type}.name`)}),c.side==='L'?'#a3341f':'#4f6b2c');c.hp-=10;if(c.side==='R')G.killedDefs++;}
 export function damageCastle(c,x,y,dmg){
   const ci=Math.floor((x-c.x0)/COL);
   for(let d=-1;d<=1;d++){const i=ci+d;if(i<0||i>=c.heights.length)continue;

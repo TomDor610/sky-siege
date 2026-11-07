@@ -1,6 +1,6 @@
 # Sky Siege – דו-קרב הממציאים
 
-משחק דפדפן לטלפון ולמחשב, בעברית (RTL). ימי ביניים בסגנון מחברות של דה וינצ'י: בונים מכונה מעופפת, מטיסים אותה בעצמך ומפילים טירות.
+משחק דפדפן לטלפון ולמחשב, בעברית (RTL) ובאנגלית (LTR). ימי ביניים בסגנון מחברות של דה וינצ'י: בונים מכונה מעופפת, מטיסים אותה בעצמך ומפילים טירות.
 
 ## עמודי התווך של העיצוב (לא לשבור)
 1. **בנה ואז תטיס.** כל סיבוב בנוי משלב תכנון (חלקים, סגנון, הגנות) ומשלב ביצוע (הטסה ידנית).
@@ -24,7 +24,8 @@
 ### מבנה הקוד (`src/`)
 | קובץ | תוכן |
 |---|---|
-| `data.js` | כל הנתונים והקבועים: `STYLES`, `PARTS`, `BOMBTYPE`, `UPG`, `DEF`, `DIFF`, `BOT`, קבועי פיזיקה ועולם |
+| `i18n/` | ‏`he.js`, `en.js` ו-`index.js` עם `t('key',{vars})`: משתנים `{name}` ורבים (`{one,two,other}` לפי `Intl.PluralRules`, לפי `vars.n`). `applyStatic()` מתרגם `data-i18n`/`data-i18n-title` ב-HTML ומחליף `dir`/`lang`. `textDir()` ל-`ctx.direction` |
+| `data.js` | כל הנתונים והקבועים (מספרים בלבד; השמות והתיאורים ב-`i18n/`): `STYLES`, `PARTS`, `BOMBTYPE`, `UPG`, `DEF`, `DIFF`, `BOT`, קבועי פיזיקה ועולם |
 | `state.js` | מצב משותף שמשתנה: `G`, `prog`, `build`, `fort`, `gameMode`, `difficulty`. **הצבה רק דרך `setX()`** (ייבוא ב-ES modules הוא לקריאה בלבד) |
 | `progress.js` | ‏`freshProg`, ‏`loadSaved` (טעינה מ-localStorage), שמירה, `budget`, `sanitize`, דרגות |
 | `physics.js` | ‏`stats`, `updatePlane`, יצירת מכונות, פגיעות, `explode` |
@@ -56,21 +57,23 @@
 - **ציור:** `drawMachine`, `drawCastle`, `drawSky`, `drawGround`, `paperOverlay` (מרקם נייר ב-multiply ו-vignette), ופונקציות קו "ביד": `sk`, `skRect`, `hsh`.
 
 ### שמירה (localStorage)
-מפתחות: `skysiege_prog`, `skysiege_build2`, `skysiege_fort`, `skysiege_diff`, `skysiege_mode`, `skysiege_tutorial` (`done`/`skipped`; ההדרכה מופיעה רק לשחקן בלי XP ובלי ניצחונות, ורק עד שהמפתח קיים), `skysiege_sound` (`{muted,sfx,music}`, ברירת מחדל: הכול פועל).
+מפתחות: `skysiege_prog`, `skysiege_build2`, `skysiege_fort`, `skysiege_diff`, `skysiege_mode`, `skysiege_tutorial` (`done`/`skipped`; ההדרכה מופיעה רק לשחקן בלי XP ובלי ניצחונות, ורק עד שהמפתח קיים), `skysiege_sound` (`{muted,sfx,music}`, ברירת מחדל: הכול פועל), `skysiege_lang` (`he`/`en`; אם לא נבחר: עברית למי שיש לו `skysiege_prog`, אחרת לפי שפת הדפדפן).
 **חובה לשמור תאימות לאחור.** שחקנים אמיתיים כבר משחקים. כל שדה חדש נכנס דרך `freshProg()` ו-`Object.assign` בזמן הטעינה, ואסור לאפס להם התקדמות.
 
 ### ממשק לבדיקות
-`window.__sky` חושף `G`, `prog`, `input`, `press('bomb'|'flip')`, `step(n)`, `setMode`, `refresh`, `tutorial()` (מצב ההדרכה), `sound()` (מצב השמע: `state`, `settings`, `music`, `played`).
+`window.__sky` חושף `G`, `prog`, `input`, `press('bomb'|'flip')`, `step(n)`, `setMode`, `refresh`, `tutorial()` (מצב ההדרכה), `sound()` (מצב השמע: `state`, `settings`, `music`, `played`), `lang()` (השפה הנוכחית).
 הבדיקות ב-`tests/` (Playwright):
 - `helpers/autopilot.js`: טייס אוטומטי (`runBattle`) שמריץ קרב שלם ב-`step()` ומחזיר תוצאה. `Math.random` מקבל seed, והקרב רץ בקריאה סינכרונית אחת, כך שהתוצאה דטרמיניסטית.
 - `autopilot.spec.js`: דו-קרב וקמפיין × 3 רמות × 3 seeds. בודק שאין שגיאות ושהקרב מסתיים, וגם השוואה מדויקת ל-`tests/baseline.json`.
 - `tutorial.spec.js`: ההדרכה לא משנה את תוצאות הטייס האוטומטי (מושווה ל-baseline), מגיבה לפעולות, נשמרת, הדילוג עובד, ושחקנים ותיקים לא רואים אותה.
 - `sound.spec.js`: עם שמע פעיל הטייס האוטומטי עדיין זהה ל-baseline, המוזיקה עוברת בין המסכים, וההשתקה והמתגים נשמרים.
-- `screens.spec.js`: צילומי מסך בטלפון 844x390 ו-390x844, שנשמרים ל-`tests/screenshots/`.
+- `i18n.spec.js`: אותם מפתחות ואותם משתנים בשתי השפות, כל מפתח בשימוש וכל שימוש קיים; קרבות באנגלית זהים ל-baseline ובלי אף אות עברית (מסכים, הודעות צפות, טקסט שיתוף); בחירת שפה ושמירתה.
+- `screens.spec.js`: צילומי מסך בטלפון 844x390 ו-390x844, בעברית ובאנגלית, שנשמרים ל-`tests/screenshots/`. בודק גם שכפתורי ה-HUD לא מסתירים צגים.
 - **`baseline.json`** נרשם מהגרסה המקורית (commit `a8bd6f9`). שינוי מכוון במשחקיות או באיזון ישבור את בדיקת ה-baseline, וזה צפוי. אחרי שמוודאים שהשינוי רצוי, מייצרים מחדש: `node tests/tools/make-baseline.mjs http://localhost:5173/` (כששרת הפיתוח רץ).
 
 ## כללי עבודה
-- כל הטקסט למשתמש בעברית. ב-Canvas משתמשים ב-`ctx.direction='rtl'`.
+- **כל טקסט שמוצג למשתמש עובר דרך `t()`** ונכנס לשני הקבצים, `he.js` ו-`en.js` (הבדיקות נכשלות אם מפתח חסר באחד מהם). באנגלית מתרגמים טבעי ומשחקי, לא מילולי. ב-Canvas: `ctx.direction=textDir()`. ההערות באיטלקית ברקע (`NOTE_TXT`) לא מתורגמות.
+- **עולם המשחק לא מתהפך עם השפה:** השחקן תמיד משמאל והיריב מימין; כפתורי המגע וציור הטירה בסדנה נשארים במקומם. רק סדר הקריאה (HUD, מסכים) מתהפך, ב-CSS דרך `html[dir=ltr]`.
 - בלי `alert`, `confirm` או `prompt`. דיאלוגים נבנים בתוך הדף.
 - יעד ביצועים: 60fps בטלפון בינוני. כל עדכון נבדק גם בתצוגת טלפון לרוחב (למשל 844x390) וגם לאורך (390x844).
 - כל שינוי באיזון נבדק בקרבות אוטומטיים בשלוש רמות הקושי, בשני המצבים.

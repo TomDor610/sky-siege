@@ -7,7 +7,9 @@ export default defineConfig({
   timeout: 120_000,
   fullyParallel: true,
   reporter: [['list']],
-  use: { viewport: { width: 1280, height: 720 } },
+  // Hebrew by default (the language is picked from the browser for new players);
+  // English tests opt in with test.use({ locale: 'en-US' }).
+  use: { viewport: { width: 1280, height: 720 }, locale: 'he-IL' },
   projects: [
     { name: 'dev', use: { baseURL: 'http://localhost:5173/' } },
     { name: 'dist', use: { baseURL: 'http://localhost:4173/' } },

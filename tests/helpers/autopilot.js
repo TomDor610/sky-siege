@@ -7,7 +7,8 @@
 // requestAnimationFrame frame can interleave and consume random numbers.
 // Same seed + same game code => bit-identical result.
 
-export function runBattle({ mode, diff, seed = 1, maxSeconds = 200, dt = 1 / 60 }) {
+// collect: also return every floating text and castle label seen (read-only; for language tests).
+export function runBattle({ mode, diff, seed = 1, maxSeconds = 200, dt = 1 / 60, collect = false }) {
   // mulberry32
   let a = seed >>> 0;
   Math.random = () => {
@@ -65,12 +66,14 @@ export function runBattle({ mode, diff, seed = 1, maxSeconds = 200, dt = 1 / 60 
 
   const maxSteps = Math.round(maxSeconds / dt);
   let steps = 0;
+  const seen = new Set();
   while (steps < maxSteps) {
     const G = S.G;
     if (!G || G.state === 'wonDone' || G.state === 'lostDone') break;
     pilot(G);
     S.step(1, dt);
     steps++;
+    if (collect && S.G) { for (const f of S.G.floaters) seen.add(f.text); for (const c of S.G.castles) seen.add(c.label); }
   }
   const G = S.G;
   const r = x => Math.round(x * 1000) / 1000;
@@ -87,6 +90,7 @@ export function runBattle({ mode, diff, seed = 1, maxSeconds = 200, dt = 1 / 60 
     botDowns: G.botDowns, killedDefs: G.killedDefs,
     coins: S.prog.coins, xp: S.prog.xp,
     resultVisible: !document.getElementById('resultScreen').classList.contains('hidden'),
+    ...(collect ? { texts: [...seen] } : {}),
   };
 }
 

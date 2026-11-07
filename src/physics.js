@@ -2,6 +2,7 @@
 import {castleMid,castleTop,damageCastle,hitsCastle,killDef} from './castle.js';
 import {BOMBTYPE,CW,DRAG,GRAV,G_ALONG,HOME,STALL_K,STYLES,THRUST_K,WORLD} from './data.js';
 import {floater,spark} from './effects.js';
+import {t} from './i18n/index.js';
 import {G,prog} from './state.js';
 import {sfx} from './sound.js';
 import {clamp} from './util.js';
@@ -38,7 +39,7 @@ export function hitPlane(pl,dmg,reason){if(pl.dead)return;pl.hp-=dmg;pl.hitFlash
 export function killPlane(pl,reason){
   if(pl.dead)return;pl.dead=true;const d=planeDir(pl);pl.wx=d.x*pl.s*0.6;pl.vz=d.y*pl.s*0.6;pl.reason=reason;
   spark(pl.x,pl.y,'splinter',16);spark(pl.x,pl.y,'fire',12);sfx('planeDown',{x:pl.x,mine:pl===G.me});if(pl===G.me)G.shake=12;
-  if(pl.isBot){G.botDowns++;floater(pl.x,pl.y-40,'מכונת היריב הופלה!','#4f6b2c');}
+  if(pl.isBot){G.botDowns++;floater(pl.x,pl.y-40,t('fl.botDown'),'#4f6b2c');}
 }
 export function explode(owner,x,y,bt,big){
   spark(x,y,'fire',big?26:14);sfx('boom',{x,big,greek:!!bt.burn});for(let i=0;i<(big?8:4);i++)spark(x,y,'smoke');
@@ -56,7 +57,7 @@ export function updatePlane(pl,dt){
     if(!pl.crashed){pl.vz+=GRAV*dt;pl.x+=pl.wx*dt;pl.y+=pl.vz*dt;pl.p-=1.5*dt;if(Math.random()<0.6)spark(pl.x,pl.y,'smoke');
       if(pl.y>WORLD.ground-8){pl.y=WORLD.ground-8;pl.crashed=true;explode(pl.side,pl.x,pl.y,BOMBTYPE.stone,true);
         if(G.duel)pl.respawnT=4;else if(pl===G.me&&G.state==='play'){G.state='lost';G.end=G.t+1.6;}}}
-    else if(G.duel&&G.state==='play'){pl.respawnT-=dt;if(pl.respawnT<=0){spawnPlane(pl);sfx('launch',{x:pl.x,mine:!pl.isBot});floater(pl.x,pl.y-30,pl.isBot?'היריב שוגר שוב':'שוגרת שוב!');}}
+    else if(G.duel&&G.state==='play'){pl.respawnT-=dt;if(pl.respawnT<=0){spawnPlane(pl);sfx('launch',{x:pl.x,mine:!pl.isBot});floater(pl.x,pl.y-30,pl.isBot?t('fl.botRespawn'):t('fl.respawn'));}}
     return;
   }
   if(inp.flip&&pl.flip===0){pl.flip=1;if(pl.p<0)pl.p=Math.max(pl.p,-0.3);}
@@ -76,15 +77,15 @@ export function updatePlane(pl,dt){
   if(pl.hp<st.hp*0.5&&Math.random()<0.35)spark(pl.x-dir.x*30,pl.y-dir.y*30,'smoke');
   pl.bombCD-=dt;
   if(inp.bomb&&pl.bombs>0&&pl.bombCD<=0){pl.bombs--;pl.bombCD=0.22;sfx('drop',{x:pl.x,mine:pl===G.me});G.bombs.push({owner:pl.side,bt:pl.bt,mul:st.dmgMul,x:pl.x,y:pl.y+12,vx:dir.x*pl.s*0.9,vy:dir.y*pl.s*0.9+pl.vz+20});}
-  else if(inp.bomb&&pl.bombs===0&&pl===G.me&&pl.bombCD<=0){pl.bombCD=0.6;sfx('empty');floater(pl.x,pl.y-30,G.duel?'אין פצצות! חזור לטירה שלך':'אין פצצות! חזור למגדל');}
+  else if(inp.bomb&&pl.bombs===0&&pl===G.me&&pl.bombCD<=0){pl.bombCD=0.6;sfx('empty');floater(pl.x,pl.y-30,G.duel?t('fl.noBombsDuel'):t('fl.noBombs'));}
   pl.shootCD-=dt;
   if(inp.shoot&&pl.build.crossbows>0&&pl.shootCD<=0){pl.shootCD=0.5/pl.build.crossbows;const v=pl.s+650;
     sfx('crossbow',{x:pl.x,mine:pl===G.me});G.arrows.push({owner:pl.side,mul:st.dmgMul,x:pl.x+dir.x*45,y:pl.y+dir.y*45,vx:dir.x*v,vy:dir.y*v+pl.vz,life:1.4});}
   const z=rearmZone(pl);
-  if(pl.x>z.x0&&pl.x<z.x1&&pl.y>z.y0&&pl.y<z.y1&&pl.bombs<st.bombsMax){pl.bombs=st.bombsMax;sfx('rearm',{x:pl.x,mine:!pl.isBot});floater(pl.x,pl.y-35,pl.isBot?'היריב חימש':'חומש! 💣',pl.isBot?'#a3341f':'#4f6b2c');}
+  if(pl.x>z.x0&&pl.x<z.x1&&pl.y>z.y0&&pl.y<z.y1&&pl.bombs<st.bombsMax){pl.bombs=st.bombsMax;sfx('rearm',{x:pl.x,mine:!pl.isBot});floater(pl.x,pl.y-35,pl.isBot?t('fl.botRearm'):t('fl.rearm'),pl.isBot?'#a3341f':'#4f6b2c');}
   if(G.state!=='play'&&pl.y>WORLD.ground-140)pl.p=Math.max(pl.p,0.3);
-  if(pl.y>=WORLD.ground-12)killPlane(pl,'המכונה התרסקה בקרקע');
-  else if(!G.duel&&pl.x>HOME.x0&&pl.x<HOME.x1&&pl.y>HOME.top)killPlane(pl,'התנגשת במגדל הבית');
-  else for(const c of G.castles){if(c.hp>0&&hitsCastle(c,pl.x,pl.y)){killPlane(pl,'התנגשת בטירה');if(c.side!==pl.side){damageCastle(c,pl.x,pl.y,20);}explode(pl.side,pl.x,pl.y,BOMBTYPE.stone,true);break;}}
+  if(pl.y>=WORLD.ground-12)killPlane(pl,'reason.ground');
+  else if(!G.duel&&pl.x>HOME.x0&&pl.x<HOME.x1&&pl.y>HOME.top)killPlane(pl,'reason.home');
+  else for(const c of G.castles){if(c.hp>0&&hitsCastle(c,pl.x,pl.y)){killPlane(pl,'reason.castle');if(c.side!==pl.side){damageCastle(c,pl.x,pl.y,20);}explode(pl.side,pl.x,pl.y,BOMBTYPE.stone,true);break;}}
   if(pl.hitFlash>0)pl.hitFlash-=dt;
 }

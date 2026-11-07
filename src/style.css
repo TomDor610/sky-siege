@@ -67,7 +67,7 @@ button:disabled{opacity:.35;cursor:default}
 #hudCenter{text-align:center;min-width:90px}
 #stall{color:var(--red);font-weight:900;font-size:18px;text-align:center;visibility:hidden;text-shadow:0 0 4px var(--parch)}
 /* pause + sound buttons: top-left, under the single "enemy castle" box (the right side wraps to two rows on portrait phones) */
-#hudBtns{position:fixed;top:64px;left:10px;z-index:6;display:flex;gap:6px;direction:ltr;pointer-events:none}
+#hudBtns{position:fixed;top:var(--btnTop,64px);left:10px;z-index:6;display:flex;gap:6px;direction:ltr;pointer-events:none}
 #pauseBtn{pointer-events:auto;font-size:14px;padding:3px 9px;background:rgba(242,228,196,.88)}
 #tip{position:fixed;left:50%;top:78px;transform:translateX(-50%);z-index:5;background:rgba(59,42,26,.85);color:var(--parch);padding:7px 12px;border-radius:4px;font-size:14px;text-align:center;pointer-events:none;transition:opacity .6s;max-width:92vw}
 #rotate{position:fixed;bottom:150px;left:50%;transform:translateX(-50%);z-index:5;font-size:13px;color:var(--ink2);background:rgba(242,228,196,.85);padding:3px 8px;border-radius:3px;pointer-events:none}
@@ -88,7 +88,7 @@ button:disabled{opacity:.35;cursor:default}
 #ownBox{display:none}
 body.duel #ownBox{display:block}
 /* First-battle tutorial bubble (src/ui/tutorial.js) */
-#tut{position:fixed;left:50%;top:104px;transform:translateX(-50%);z-index:7;width:min(430px,calc(100vw - 24px));background:rgba(242,228,196,.96) var(--paper,none);background-size:300px;border:2px solid var(--ink);border-radius:8px;box-shadow:0 0 0 3px var(--parch),0 0 0 4px var(--ink2),0 6px 18px rgba(40,25,10,.3);padding:6px 12px 8px;text-align:center;pointer-events:none}
+#tut{position:fixed;left:50%;top:calc(var(--btnTop,64px) + 40px);transform:translateX(-50%);z-index:7;width:min(430px,calc(100vw - 24px));background:rgba(242,228,196,.96) var(--paper,none);background-size:300px;border:2px solid var(--ink);border-radius:8px;box-shadow:0 0 0 3px var(--parch),0 0 0 4px var(--ink2),0 6px 18px rgba(40,25,10,.3);padding:6px 12px 8px;text-align:center;pointer-events:none}
 #tut::after{content:'';position:absolute;bottom:-11px;left:50%;margin-left:-9px;border:9px solid transparent;border-bottom:0;border-top-color:var(--ink)}
 .tutStep{font-size:12px;font-weight:700;color:var(--red);letter-spacing:.5px}
 #tutTxt{font-size:17px;font-weight:700;line-height:1.35;margin:2px 0 6px}
@@ -102,3 +102,13 @@ body.duel #ownBox{display:block}
 .soundSeg{max-width:420px;margin:8px auto 0}
 .soundSeg button{font-size:14px;opacity:.6}
 .soundSeg button.on{opacity:1}
+/* Language button (src/i18n) */
+.langBtn{margin-top:6px;font-size:13px;padding:2px 10px}
+/* English / left-to-right. Only reading order flips; the game world never mirrors
+   (player always left, enemy right; touch controls and the fort picture stay put). */
+html[dir=ltr] #hud{direction:ltr}
+html[dir=ltr] .slot{direction:ltr}
+html[dir=ltr] .upg .pips{margin-right:0;margin-left:10px}
+html[dir=ltr] .earn{text-align:left}
+/* pause + sound sit under the single enemy-castle box, which is on the right in LTR */
+html[dir=ltr] #hudBtns{left:auto;right:10px;direction:rtl}

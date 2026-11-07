@@ -2,6 +2,7 @@
 import {HOME,INK,WORLD} from '../data.js';
 import {hsh,sk,skRect} from './sketch.js';
 import {rearmZone} from '../physics.js';
+import {t as tr,textDir} from '../i18n/index.js'; // 't' is the time parameter here
 import {G} from '../state.js';
 import {pick,rnd} from '../util.js';
 import {ctx,viewH,viewW} from '../view.js';
@@ -76,7 +77,7 @@ export function drawRearm(t){
   const me=G.me;if(me.dead)return;const z=rearmZone(me),full=me.bombs>=me.st.bombsMax;
   ctx.setLineDash([6,6]);ctx.strokeStyle=full?'rgba(79,107,44,.22)':'rgba(79,107,44,.8)';ctx.lineWidth=2;
   ctx.strokeRect(z.x0,z.y0,z.x1-z.x0,z.y1-z.y0);ctx.setLineDash([]);
-  if(!full){ctx.fillStyle='rgba(79,107,44,.9)';ctx.font='bold 16px "Frank Ruhl Libre",serif';ctx.textAlign='center';ctx.direction='rtl';ctx.fillText('↓ חימוש ↓',(z.x0+z.x1)/2,z.y0-8+Math.sin(t*4)*3);}
+  if(!full){ctx.fillStyle='rgba(79,107,44,.9)';ctx.font='bold 16px "Frank Ruhl Libre",serif';ctx.textAlign='center';ctx.direction=textDir();ctx.fillText(tr('rearm.zone'),(z.x0+z.x1)/2,z.y0-8+Math.sin(t*4)*3);}
 }
 export function drawHome(t){
   const {x0,x1,top}=HOME,gnd=WORLD.ground,sd=7.3;

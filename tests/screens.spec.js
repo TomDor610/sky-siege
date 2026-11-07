@@ -2,24 +2,27 @@ import { test, expect } from '@playwright/test';
 import { runBattle } from './helpers/autopilot.js';
 import { openGame } from './helpers/page.js';
 
-// Phone screenshots, landscape and portrait. Saved to tests/screenshots/
-// (git-ignored) and attached to the test report.
+// Phone screenshots, landscape and portrait, in Hebrew and English. Saved to
+// tests/screenshots/ (git-ignored) and attached to the test report.
 const PHONES = [
   { name: 'landscape', viewport: { width: 844, height: 390 } },
   { name: 'portrait', viewport: { width: 390, height: 844 } },
 ];
 
-for (const phone of PHONES) {
-  test.describe(`phone ${phone.name}`, () => {
-    test.use({ viewport: phone.viewport, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+const LANGS = [{ lang: 'he', locale: 'he-IL' }, { lang: 'en', locale: 'en-US' }];
+
+for (const { lang, locale } of LANGS) for (const phone of PHONES) {
+  test.describe(`phone ${phone.name} (${lang})`, () => {
+    test.use({ viewport: phone.viewport, isMobile: true, hasTouch: true, deviceScaleFactor: 2, locale });
 
     test('screenshots: workshop, battle, result', async ({ page }, info) => {
       const errors = await openGame(page);
+      expect(await page.evaluate(() => window.__sky.lang())).toBe(lang);
       await page.evaluate(() => document.fonts.ready);
       const shot = async label => {
-        const file = `tests/screenshots/${info.project.name}-${phone.name}-${label}.png`;
+        const file = `tests/screenshots/${info.project.name}-${lang}-${phone.name}-${label}.png`;
         await page.screenshot({ path: file });
-        await info.attach(`${phone.name}-${label}`, { path: file, contentType: 'image/png' });
+        await info.attach(`${lang}-${phone.name}-${label}`, { path: file, contentType: 'image/png' });
       };
       const frames = n => page.evaluate(n => new Promise(r => { const f = () => (--n ? requestAnimationFrame(f) : r()); requestAnimationFrame(f); }), n);
 

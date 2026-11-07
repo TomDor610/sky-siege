@@ -2,6 +2,7 @@
 import {colTop,colX} from '../castle.js';
 import {COL,INK,WORLD} from '../data.js';
 import {hsh,sk,skRect} from './sketch.js';
+import {textDir} from '../i18n/index.js';
 import {ctx} from '../view.js';
 export function drawCastle(c,t){
   const n=c.heights.length,gnd=WORLD.ground,kk=c.tint;
@@ -32,7 +33,7 @@ export function drawCastle(c,t){
       ctx.fillStyle=c.color;ctx.beginPath();ctx.moveTo(x,y-34);ctx.lineTo(x+16*fd,y-29+Math.sin(t*6+i)*2);ctx.lineTo(x,y-24);ctx.fill();}
     const kx=colX(c,5)+20,ky=colTop(c,5)+COL*0.75;
     ctx.fillStyle=c.color;ctx.strokeStyle=INK;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(kx-28,ky-12);ctx.lineTo(kx+28,ky-12);ctx.lineTo(kx+28,ky+12);ctx.lineTo(kx,ky+20);ctx.lineTo(kx-28,ky+12);ctx.closePath();ctx.fill();ctx.stroke();
-    ctx.fillStyle='#f2e4c4';ctx.font='bold 15px "Frank Ruhl Libre",serif';ctx.textAlign='center';ctx.direction='rtl';ctx.fillText(c.label,kx,ky+5);
+    ctx.fillStyle='#f2e4c4';ctx.font='bold 15px "Frank Ruhl Libre",serif';ctx.textAlign='center';ctx.direction=textDir();ctx.fillText(c.label,kx,ky+5);
   }
   for(const b of c.defs){
     if(!b.alive)continue;
