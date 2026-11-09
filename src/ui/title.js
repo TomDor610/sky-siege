@@ -11,6 +11,7 @@ import {difficulty,gameMode,prog,setDifficulty,setGameMode} from '../state.js';
 import {cloudConfigured,info,onSyncChange,signInGoogle} from '../sync/index.js';
 import {$,store} from '../util.js';
 import {openLeaderboard} from './leaderboard-ui.js';
+import {openRoomScreen} from './room-ui.js';
 import {isNewPlayer} from './tutorial.js';
 
 const chosenMode=()=>!!store.get('skysiege_mode');
@@ -66,6 +67,7 @@ export function initTitle(){
   document.querySelectorAll('#ttlModes button[data-tm]').forEach(b=>b.onclick=()=>{
     setGameMode(b.dataset.tm);store.set('skysiege_mode',b.dataset.tm);renderTitle();
   });
+  $('ttlFriend').onclick=openRoomScreen;
   $('ttlGoogle').onclick=async()=>{try{await signInGoogle();}catch(e){}renderTitle();};
   $('ttlLb').onclick=openLeaderboard;
   $('ttlLang').onclick=switchLang;

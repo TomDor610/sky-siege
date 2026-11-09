@@ -63,15 +63,15 @@ test('returning player: Play uses the last choice; Continue shows progress and o
   expect(errors).toEqual([]);
 });
 
-test('Ghost Race is "coming soon" and does nothing', async ({ page }) => {
+test('"vs. a Friend" opens the room screen and Back returns to the title', async ({ page }) => {
   await open(page);
-  await expect(page.locator('#ttlGhost')).toContainText('מרוץ רוחות');
-  await expect(page.locator('#ttlGhost')).toContainText('בקרוב');
-  await page.click('#ttlGhost', { force: true }); // aria-disabled, but a real tap still lands
+  await expect(page.locator('#ttlFriend')).toHaveText('🤝 מול חבר');
+  await page.click('#ttlFriend');
+  await expect(page.locator('#roomScreen')).toBeVisible();
+  await expect(page.locator('#titleScreen')).toBeHidden();
+  await page.click('#roomBack');
   await expect(page.locator('#titleScreen')).toBeVisible();
   expect(await page.evaluate(() => window.__sky.G)).toBeNull();
-  expect(await page.evaluate(() => localStorage.getItem('skysiege_mode'))).toBeNull();
-  await expect(page.locator('#ttlGhost')).not.toHaveClass(/(^| )on( |$)/);
 });
 
 test('account line: guest sees Google, signed-in player sees nickname and rank', async ({ page }) => {
@@ -166,7 +166,8 @@ test('analytics: one event per press, and none once turned off', async ({ page }
   await open(page);
   await saved(page);
   await page.click('#ttlModes button[data-tm="duel"]');
-  await page.click('#ttlGhost', { force: true }); // aria-disabled, but a real tap still lands
+  await page.click('#ttlFriend');
+  await page.click('#roomBack');
   await page.click('#ttlLang');
   await page.click('#ttlSettings');
   await page.click('#setClose');
@@ -174,7 +175,7 @@ test('analytics: one event per press, and none once turned off', async ({ page }
   await page.click('#lbClose');
   await page.click('#ttlGoogle');
   await page.click('#ttlPlay');
-  expect(await events(page)).toEqual(['title_view', 'mode_duel', 'mode_ghost_soon', 'lang', 'settings', 'settings_close', 'leaderboard', 'google', 'play']);
+  expect(await events(page)).toEqual(['title_view', 'mode_duel', 'mode_friend', 'lang', 'settings', 'settings_close', 'leaderboard', 'google', 'play']);
   expect((await page.evaluate(() => window.__skyAnalytics[0])).params).toEqual({ new_player: true, lang: 'he' });
 });
 
@@ -186,7 +187,7 @@ test('analytics can be turned off, and it stays off', async ({ page }) => {
   await expect(page.locator('#setAnalytics')).toHaveText('📊 נתוני שימוש: כבוי');
   const before = (await events(page)).length;
   await page.click('#setClose');
-  await page.click('#ttlGhost', { force: true }); // aria-disabled, but a real tap still lands
+  await page.click('#ttlModes button[data-tm="duel"]');
   await page.click('#ttlPlay');
   expect((await events(page)).length).toBe(before);
   await page.reload();

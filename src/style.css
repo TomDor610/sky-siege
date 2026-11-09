@@ -155,8 +155,6 @@ html[dir=ltr] #hudBtns{left:auto;right:10px;direction:rtl}
 .ttlModes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 .ttlModes button{font-size:14px;font-weight:700;line-height:1.15;padding:6px 4px;min-height:52px}
 .ttlModes button.on{background:var(--ink);color:var(--parch)}
-.ttlModes .soon{border-style:dashed;cursor:default;background:rgba(230,208,162,.75);color:var(--ink2)}
-.ttlTag{display:block;width:fit-content;margin:3px auto 0;padding:0 7px;font-style:normal;font-size:11px;font-weight:900;color:var(--parch);background:var(--gold);border-radius:8px}
 .ttlAcct{display:flex;justify-content:center;align-items:center;min-height:32px;font-size:14px;font-weight:700}
 .ttlAcct span{background:rgba(242,228,196,.88);border-radius:12px;padding:2px 10px}
 .ttlAcct button{font-size:14px;padding:3px 10px}
@@ -172,3 +170,14 @@ html[dir=ltr] #hudBtns{left:auto;right:10px;direction:rtl}
   .ttlHead h1{font-size:36px}
   .ttlModes button{min-height:40px;padding:4px}
 }
+/* Private rooms (src/ui/room-ui.js) */
+.roomCard{max-width:440px;text-align:center}
+.roomCard h1{font-size:28px;margin-bottom:6px}
+.roomOr{margin-top:14px}
+.roomCode{direction:ltr;font-size:46px;font-weight:900;letter-spacing:8px;line-height:1.1;color:var(--red);user-select:text;-webkit-user-select:text}
+.roomPlayer{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;font-size:17px;font-weight:700}
+.roomPlayer i{font-style:normal;font-size:12px;color:var(--gold)}
+.roomName{word-break:break-word;text-align:start}
+#roomPlayers:empty{display:none}
+.roomStatus{font-weight:700;margin:6px 0}
+#roomCodeIn{text-align:center;text-transform:uppercase;letter-spacing:3px}

@@ -6,6 +6,7 @@ export const firebaseConfig = {
   apiKey: 'AIzaSyD8EbIqYtG21GhAhOYLwvVuCUEaUlEL7Ms',
   authDomain: 'sky-siege-a4cf4.firebaseapp.com',
   projectId: 'sky-siege-a4cf4',
+  databaseURL: 'https://sky-siege-a4cf4-default-rtdb.europe-west1.firebasedatabase.app',
   storageBucket: 'sky-siege-a4cf4.firebasestorage.app',
   messagingSenderId: '148673355155',
   appId: '1:148673355155:web:b258df55ed653d47d11c66',

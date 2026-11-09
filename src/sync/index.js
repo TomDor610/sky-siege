@@ -33,7 +33,20 @@ const syncedListeners=[];
 export const onSynced=f=>syncedListeners.push(f);
 export const cloud=()=>({backend,user});
 // Known before Firebase has loaded, so the title screen does not have to wait for it.
-export const cloudConfigured=()=>!!window.__skyCloudBackend||(!!firebaseConfig&&!navigator.webdriver);
+export const cloudConfigured=()=>!!window.__skyCloudBackend||netAvailable();
+// Tests point the game at the Firebase emulators with window.__skyEmulators; under automation
+// the real project is never used.
+export const emulators=()=>window.__skyEmulators||null;
+export const activeConfig=()=>(emulators()?emulators().config:firebaseConfig);
+export const netAvailable=()=>!!emulators()||(!!firebaseConfig&&!navigator.webdriver&&!window.__skyCloudBackend);
+// Signing in is shared, so a room and the cloud save cannot each create an anonymous account.
+let readyDone;const readyP=new Promise(r=>{readyDone=r;});
+let signingIn=null;
+function getUser(){
+  if(user)return Promise.resolve(user);
+  return signingIn||(signingIn=backend.ensureUser().then(u=>{user=u;signingIn=null;return u;},e=>{signingIn=null;throw e;}));
+}
+export async function ensureSignedIn(){await readyP;if(!backend)throw new Error('no backend');return getUser();}
 export function info(){return {status,uid:user&&user.uid,isAnonymous:user?user.isAnonymous:null,name:user&&user.name||'',dirty:meta.dirty,syncs};}
 
 function currentSave(){return {prog,build,fort,buildAt:meta.buildAt||0};}
@@ -56,7 +69,7 @@ function apply(m){
 }
 
 async function syncOnce(){
-  if(!user)user=await backend.ensureUser();
+  await getUser();
   setStatus('syncing');
   const remote=await backend.load(user.uid);
   const local=currentSave();
@@ -125,12 +138,13 @@ export async function initSync(h){
   });
   try{
     if(window.__skyCloudBackend)backend=window.__skyCloudBackend;
-    else if(firebaseConfig&&!navigator.webdriver){const {createBackend}=await import('./firebase.js');backend=createBackend(firebaseConfig);}
+    else if(netAvailable()){const {createBackend}=await import('./firebase.js');backend=createBackend(activeConfig(),emulators());}
   }catch(e){backend=null;}
-  if(!backend){setStatus('off');return;}
+  if(!backend){setStatus('off');readyDone();return;}
   setStatus('syncing');
   addEventListener('online',()=>syncNow());
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&meta.dirty)syncNow();});
   try{user=await backend.ready();}catch(e){user=null;}
+  readyDone();
   await syncNow();
 }

@@ -2,11 +2,12 @@
 // Firestore "lite": plain request/response, no offline cache — offline-first is handled
 // by our own localStorage save, which keeps the bundle small.
 import {initializeApp} from 'firebase/app';
-import {GoogleAuthProvider,getAuth,linkWithPopup,onAuthStateChanged,signInAnonymously,signInWithCredential,signInWithPopup,signOut} from 'firebase/auth';
-import {collection,doc,documentId,getCount,getDoc,getDocs,getFirestore,limit,orderBy,query,serverTimestamp,setDoc,where} from 'firebase/firestore/lite';
+import {GoogleAuthProvider,connectAuthEmulator,getAuth,linkWithPopup,onAuthStateChanged,signInAnonymously,signInWithCredential,signInWithPopup,signOut} from 'firebase/auth';
+import {connectFirestoreEmulator,collection,doc,documentId,getCount,getDoc,getDocs,getFirestore,limit,orderBy,query,serverTimestamp,setDoc,where} from 'firebase/firestore/lite';
 
-export function createBackend(config){
+export function createBackend(config,emu){
   const app=initializeApp(config),auth=getAuth(app),db=getFirestore(app);
+  if(emu){connectAuthEmulator(auth,emu.auth,{disableWarnings:true});connectFirestoreEmulator(db,emu.firestore[0],emu.firestore[1]);}
   const lb=()=>collection(db,'leaderboard');
   const rows=snap=>snap.docs.map(d=>({uid:d.id,...d.data()}));
   const toUser=u=>u&&{uid:u.uid,isAnonymous:u.isAnonymous,name:u.displayName||(u.providerData[0]&&u.providerData[0].displayName)||''};

@@ -51,7 +51,7 @@ test.describe('translation files', () => {
     for (const m of code.matchAll(/`([a-z]\w*\.)\$\{/g)) prefixes.add(m[1]);
     for (const m of code.matchAll(/'(reason\.\w+)'/g)) used.add(m[1]); // reasons are stored as keys and translated on the result screen
     for (const k of Object.keys(he)) if (code.includes(`'${k}'`)) used.add(k); // any literal mention, e.g. t(on ? 'a' : 'b')
-    for (const m of html.matchAll(/data-i18n(?:-title)?="([\w.]+)"/g)) used.add(m[1]);
+    for (const m of html.matchAll(/data-i18n(?:-title|-ph)?="([\w.]+)"/g)) used.add(m[1]);
     // keys built from game data
     const data = { style: [D.STYLES, ['name', 'tag', 'desc']], part: [D.PARTS, ['name', 'desc']], bomb: [D.BOMBTYPE, ['name', 'plural']],
       upg: [{ ...D.UPG, ...D.UPG_CASTLE }, ['name', 'eff']], unlock: [D.UNLOCKS, ['name', 'desc']], def: [D.DEF, ['name', 'short', 'count']],

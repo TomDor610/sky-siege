@@ -26,6 +26,11 @@
 - כדי לראות פילוח לפי `target` בדוחות, מגדירים אותו פעם אחת ב-Analytics ← Custom definitions כ-Custom dimension ברמת Event.
 - אם הוגבל מפתח ה-API, הוא חייב לאפשר גם את Firebase Installations API ואת Firebase Management API.
 
+## Realtime Database (חדרי 1v1)
+- מיקום: `europe-west1`. הכתובת ב-`databaseURL` ב-`src/sync/config.js`.
+- הכללים ב-`database.rules.json`. מפרסמים אותם ב-Realtime Database ← Rules ← Publish, **לפני** דחיפת קוד שתלוי בהם.
+- מגבלות Spark: עד 100 חיבורים בו-זמנית, 1GB אחסון, 10GB הורדה בחודש. לכן המשחק מתחבר רק בזמן שנמצאים בחדר.
+
 ## טבלת שיאים
 - `leaderboard/{uid}`: ציבורי לקריאה, כל שחקן כותב רק את השורה שלו. הכללים בודקים סבירות (כינוי 2–16 תווים מותרים, דרגה 1–20, רמה 0–500, זמן 0 או 3–10,000 שניות, ציון שתואם לרמה ולזמן, עד 200 חברים) ומגבילים לכתיבה אחת ב-20 שניות. אין מחיקה: יציאה מהטבלה כותבת שורה בלי כינוי עם ציונים -1.
 - המיון לפי שדה אחד (`score.easy` וכו'), כך שלא צריך אינדקסים מורכבים ב-Console.
@@ -33,4 +38,4 @@
 
 ## בדיקות
 - `npm test`: כולל `cloud.spec.js` מול backend מדומה ו-`unit/merge.spec.js`. לא נוגע בשרת האמיתי.
-- `npm run test:rules`: ה-Security Rules מול Firebase Emulator (דורש Java 11+; ב-GitHub Actions רץ אוטומטית).
+- `npm run test:net`: ה-Security Rules ובדיקות שני הדפדפנים מול Firebase Emulators (דורש Java 11+; ב-GitHub Actions רץ אוטומטית).

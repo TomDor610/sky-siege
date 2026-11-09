@@ -48,13 +48,35 @@
     <div class="ttlModes" id="ttlModes">
       <button data-tm="duel" data-track="mode_duel" data-i18n="mode.duel"></button>
       <button data-tm="campaign" data-track="mode_campaign" data-i18n="mode.campaign"></button>
-      <button id="ttlGhost" class="soon" data-track="mode_ghost_soon" aria-disabled="true"><span data-i18n="title.ghost"></span><i class="ttlTag" data-i18n="title.soon"></i></button>
+      <button id="ttlFriend" data-track="mode_friend" data-i18n="title.friend"></button>
     </div>
     <div id="ttlAcct" class="ttlAcct hidden"><span id="ttlAcctTxt" class="hidden"></span><button id="ttlGoogle" data-track="google" data-i18n="title.google"></button></div>
     <div class="ttlSmall">
       <button id="ttlLb" class="hidden" data-track="leaderboard" data-i18n="lb.btn"></button>
       <button id="ttlSettings" data-track="settings" data-i18n="title.settings"></button>
       <button id="ttlLang" data-track="lang" data-i18n="lang.other"></button>
+    </div>
+  </div>
+</div>
+
+<div id="roomScreen" class="screen hidden">
+  <div class="card roomCard">
+    <h1 data-i18n="title.friend"></h1>
+    <div id="roomMenu">
+      <button id="roomCreate" class="big" data-i18n="room.create"></button>
+      <p class="small roomOr" data-i18n="room.orJoin"></p>
+      <div class="lbRow"><input id="roomCodeIn" dir="ltr" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" data-i18n-ph="room.codePh"><button id="roomJoin" data-i18n="room.join"></button></div>
+      <div id="roomMsg" class="small lbMsg"></div>
+      <div class="row"><button id="roomBack" data-i18n="lb.close"></button></div>
+    </div>
+    <div id="roomLobby" class="hidden">
+      <div class="small" data-i18n="room.codeLabel"></div>
+      <div id="roomCode" class="roomCode"></div>
+      <div class="row"><button id="roomInvite" class="buy" data-i18n="room.invite"></button></div>
+      <div id="roomInviteMsg" class="small lbMsg"></div>
+      <div id="roomPlayers" class="lbBox"></div>
+      <div id="roomStatus" class="roomStatus"></div>
+      <div class="row"><button id="roomLeave" data-i18n="room.leave"></button></div>
     </div>
   </div>
 </div>

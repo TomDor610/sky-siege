@@ -18,6 +18,7 @@
 - `npm run dev`: שרת פיתוח בכתובת http://localhost:5173
 - `npm run build`: בנייה ל-`dist/index.html`
 - `npm test`: כל בדיקות Playwright, גם מול שרת הפיתוח וגם מול הקובץ הבנוי
+- `npm run test:net`: מול Firebase Emulators (דורש Java): ה-Security Rules של Firestore ו-Realtime Database, ושני דפדפנים באותו חדר (`tests/net/`), כולל השהיה וניתוק
 - פרסום: `.github/workflows/deploy.yml` מריץ את הבדיקות בכל push ל-main, ורק אם הן עוברות מפרסם את `dist` ל-GitHub Pages. בדיקה שנכשלת = אין פרסום.
 - (ב-Windows, אם `node` לא נמצא ב-Git Bash: `export PATH="/c/Program Files/nodejs:$PATH"`)
 
@@ -45,6 +46,7 @@
 | `ui/leaderboard-ui.js` | מסך "🏆 שיאים": לשוניות חברים/כולם, בורר קמפיין קל/בינוני/קשה/דו-קרב, כינוי, קוד חבר והזמנה |
 | `ui/title.js`, `draw/title-scene.js` | מסך הפתיחה (המסך הראשון, `mode='title'`): "שחק" נכנס ישר לקרב (שחקן חדש: קמפיין קל והדרכה, אלא אם בחר מצב; שחקן חוזר: הבחירה האחרונה), "המשך" פותח את הסדנה, כרטיסי מצב, שורת חשבון, הגדרות. הרקע החי משתמש בפונקציות הציור של המשחק, בלי סימולציה |
 | `analytics.js`, `sync/analytics-firebase.js` | `track(name,params)`: אירועי מסך הפתיחה ל-Firebase Analytics, נטען ברקע, במצב בלי עוגיות (`analytics_storage: denied`). כיבוי בהגדרות נשמר ב-`skysiege_analytics` |
+| `net/`, `ui/room-ui.js` | 1v1 בחדרים פרטיים (החלטות ושלבים: `docs/design/1v1.md`). `code.js`: קודי חדר. `rtdb.js`: Realtime Database, נטען ומתחבר רק בזמן שנמצאים בחדר. `room.js`: יצירה, הצטרפות, נוכחות, יציאה |
 | `ui/cloud-ui.js` | שורת מצב הענן וכפתור Google/התנתק בסדנה |
 | `flow.js` | ‏`start`, `pause`, `finish` (מסך תוצאה ומטבעות), `loop` |
 | `main.js` | אתחול לפי סדר קבוע ו-`window.__sky` |
