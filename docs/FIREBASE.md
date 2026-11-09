@@ -20,6 +20,12 @@
 - ב-artifact של claude.ai אין גישה לשרתים חיצוניים: המשחק עובד שם רק מקומית.
 - שינוי במבנה השמירה (שדה חדש ב-`prog`) מחייב עדכון של `firestore.rules` (רשימת `hasOnly`) ושל `mergeProg` ב-`src/sync/merge.js`.
 
+## אנליטיקה
+- Firebase Analytics נטען ברקע, במצב בלי עוגיות (`gcs=G100`), ורק אם השחקן לא כיבה אותו בהגדרות. אירועים: `title_view` ו-`title_click` עם הפרמטר `target` (play, continue, mode_duel, mode_campaign, mode_ghost_soon, google, leaderboard, settings, lang, settings_*).
+- **רואים אותם** ב-Console ← Analytics ← Events, עם השהיה של עד יום. בזמן אמת: Realtime, או DebugView אחרי פתיחת האתר עם תוסף Google Analytics Debugger.
+- כדי לראות פילוח לפי `target` בדוחות, מגדירים אותו פעם אחת ב-Analytics ← Custom definitions כ-Custom dimension ברמת Event.
+- אם הוגבל מפתח ה-API, הוא חייב לאפשר גם את Firebase Installations API ואת Firebase Management API.
+
 ## טבלת שיאים
 - `leaderboard/{uid}`: ציבורי לקריאה, כל שחקן כותב רק את השורה שלו. הכללים בודקים סבירות (כינוי 2–16 תווים מותרים, דרגה 1–20, רמה 0–500, זמן 0 או 3–10,000 שניות, ציון שתואם לרמה ולזמן, עד 200 חברים) ומגבילים לכתיבה אחת ב-20 שניות. אין מחיקה: יציאה מהטבלה כותבת שורה בלי כינוי עם ציונים -1.
 - המיון לפי שדה אחד (`score.easy` וכו'), כך שלא צריך אינדקסים מורכבים ב-Console.

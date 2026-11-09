@@ -20,6 +20,7 @@ let T=null;          // active tutorial, or null
 let lastSeen=[],lastDid=[]; // bubbles shown / actions recognized in the most recent tutorial (for tests)
 let shown;           // cache of what is on screen
 
+export const isNewPlayer=()=>!store.get(KEY)&&isFreshPlayer();
 function isFreshPlayer(){
   return !(prog.xp>0)&&!Object.values(prog.wins).some(Boolean)&&!Object.values(prog.duelWins).some(Boolean);
 }

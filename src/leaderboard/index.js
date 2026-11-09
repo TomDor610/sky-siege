@@ -104,7 +104,7 @@ const withMine=(rows,me)=>{const out=rows.filter(r=>r.uid!==(me&&me.uid));if(me)
 
 export async function loadList(tab,view){
   const {backend}=cloud(),uid=myUid(),me=myRow();
-  if(!backend||!backend.lbTop)throw new Error('offline');
+  if(!backend||!backend.lbTop||(tab==='friends'&&!uid))throw new Error('offline'); // not connected yet
   if(tab==='all'){
     const {data,stale}=await cached('all_'+view,()=>backend.lbTop(view,TOP));
     const rows=sortRows(withMine(data,me),view).slice(0,TOP);

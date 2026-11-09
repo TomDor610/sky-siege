@@ -9,7 +9,7 @@ export function createBackend(config){
   const app=initializeApp(config),auth=getAuth(app),db=getFirestore(app);
   const lb=()=>collection(db,'leaderboard');
   const rows=snap=>snap.docs.map(d=>({uid:d.id,...d.data()}));
-  const toUser=u=>u&&{uid:u.uid,isAnonymous:u.isAnonymous,name:u.displayName||(u.providerData[0]&&u.providerData[0].displayName)||u.email||''};
+  const toUser=u=>u&&{uid:u.uid,isAnonymous:u.isAnonymous,name:u.displayName||(u.providerData[0]&&u.providerData[0].displayName)||''};
   return {
     // resolves once Firebase has restored (or not) a previous session — works offline
     ready:()=>new Promise(res=>{const off=onAuthStateChanged(auth,u=>{off();res(toUser(u));});}),

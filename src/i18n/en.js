@@ -231,6 +231,21 @@ export default {
   'tut.rearm.siege': 'Out of bombs! Fly back above your home tower, into the green box, to rearm',
   'tut.done': "Great, you're ready! Now bring that castle down 🏰",
 
+  // ---- title screen & settings
+  'title.play': "Play",
+  'title.continue': "Continue",
+  'title.contSub': "Rank {r} · {name} · 🪙 {coins}",
+  'title.ghost': "👻 Ghost Race",
+  'title.soon': "Coming soon",
+  'title.google': "Sign in with Google",
+  'title.signedIn': "Signed in: {name} · Rank {r}",
+  'title.signedInNoName': "Signed in · Rank {r}",
+  'title.settings': "⚙ Settings",
+  'title.home': "🏠 Home",
+  'set.an.on': "📊 Usage data: on",
+  'set.an.off': "📊 Usage data: off",
+  'set.an.note': "Usage data sends taps on the title screen and basic browser info to Google Analytics, without storage cookies, so we can see what players choose.",
+
   // ---- leaderboard
   'lb.btn': "🏆 Leaderboard",
   'lb.title': "🏆 Leaderboard",

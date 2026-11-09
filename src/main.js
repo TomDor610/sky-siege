@@ -1,7 +1,9 @@
 // Entry point. Init order mirrors the original single-file script.
 import {initPaper} from './draw/paper.js';
 import {initWorld} from './draw/world.js';
-import {initFlow,loop,start} from './flow.js';
+import {initFlow,loop,start,toMenu,toTitle} from './flow.js';
+import {initAnalytics} from './analytics.js';
+import {initTitle} from './ui/title.js';
 import {update} from './game.js';
 import {initInput,input,pressed} from './input.js';
 import {stats} from './physics.js';
@@ -35,7 +37,15 @@ onLangChange(()=>{refreshBuild();renderControls();});
 initCloudUI();
 initLeaderboard();
 initLeaderboardUI();
-resize();refreshBuild();requestAnimationFrame(loop);
+initTitle();
+resize();refreshBuild();
+if(window.__skySkipTitle)toMenu();else toTitle(); // the flag is for tests that start in the workshop
+requestAnimationFrame(loop);
 // cloud save starts in the background; merges are applied only outside battles
-initSync({canApply:()=>mode!=='play'&&mode!=='pause',onApplied:()=>{if(mode==='menu')refreshBuild();}});
+// (after the first paint, so the title screen never waits for Firebase)
+const afterPaint=f=>requestAnimationFrame(()=>setTimeout(()=>window.requestIdleCallback?requestIdleCallback(f,{timeout:800}):f(),0));
+afterPaint(()=>{
+  initSync({canApply:()=>mode!=='play'&&mode!=='pause',onApplied:()=>{if(mode==='menu')refreshBuild();}});
+  initAnalytics();
+});
 window.__sky={get G(){return G},get prog(){return prog},start,input,stats,build:()=>build,fort:()=>fort,setMode:m=>{setGameMode(m);refreshBuild();},press:k=>{if(k==='bomb')pressed.bomb=true;if(k==='flip')pressed.flip=true;},step:(n,dt)=>{for(let i=0;i<n;i++){if(G.state==='play'||G.state==='won'||G.state==='lost'){update(dt||1/60);tutorialTick(dt||1/60);}}},refresh:refreshBuild,tutorial:tutorialInfo,sound:soundInfo,lang:getLang,cloud:syncInfo};

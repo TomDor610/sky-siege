@@ -142,3 +142,33 @@ html[dir=ltr] #hudBtns{left:auto;right:10px;direction:rtl}
 .lbRow input{user-select:text;-webkit-user-select:text;touch-action:manipulation;flex:1;min-width:120px;font:inherit;font-size:16px;padding:5px 8px;border:2px solid var(--ink);border-radius:4px;background:#fffaf0;color:var(--ink)}
 .lbRow button{font-size:14px}
 .lbCode{direction:ltr;unicode-bidi:isolate;font-weight:900;letter-spacing:1px;color:var(--ink)}
+/* Title screen (src/ui/title.js); the live background is src/draw/title-scene.js */
+.titleScreen{background:none;align-items:flex-start;overflow:auto;touch-action:pan-y;padding:max(10px,env(safe-area-inset-top)) 12px 10px}
+.ttlWrap{width:100%;max-width:500px;margin:0 auto;display:flex;flex-direction:column;gap:8px;text-align:center}
+.ttlHead h1{font-size:46px;text-shadow:0 0 10px var(--parch),0 0 3px var(--parch)}
+.ttlHead h1 small{font-size:17px}
+.ttlMain{display:flex;flex-direction:column;gap:6px}
+.ttlPlay{margin:0;font-size:32px;padding:10px;box-shadow:0 3px 0 var(--ink)}
+.ttlContinue{display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 10px;line-height:1.2}
+.ttlContinue b{font-size:18px}
+.ttlContinue span{font-size:13px;color:var(--ink2)}
+.ttlModes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.ttlModes button{font-size:14px;font-weight:700;line-height:1.15;padding:6px 4px;min-height:52px}
+.ttlModes button.on{background:var(--ink);color:var(--parch)}
+.ttlModes .soon{border-style:dashed;cursor:default;background:rgba(230,208,162,.75);color:var(--ink2)}
+.ttlTag{display:block;width:fit-content;margin:3px auto 0;padding:0 7px;font-style:normal;font-size:11px;font-weight:900;color:var(--parch);background:var(--gold);border-radius:8px}
+.ttlAcct{display:flex;justify-content:center;align-items:center;min-height:32px;font-size:14px;font-weight:700}
+.ttlAcct span{background:rgba(242,228,196,.88);border-radius:12px;padding:2px 10px}
+.ttlAcct button{font-size:14px;padding:3px 10px}
+.ttlSmall{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.ttlSmall button{font-size:14px;padding:4px 10px}
+.setCard{max-width:420px;text-align:center}
+.setList{display:flex;flex-direction:column;gap:8px;margin:12px 0 8px}
+.setList button{opacity:.7}
+.setList button.on,#setLang{opacity:1}
+@media (orientation:landscape) and (max-height:500px){
+  .ttlWrap{max-width:none;display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr) minmax(0,300px);grid-template-areas:"head . modes" "main . modes" "main . acct" "main . small";grid-template-rows:auto auto auto 1fr;gap:6px 8px}
+  .ttlHead{grid-area:head}.ttlMain{grid-area:main}.ttlModes{grid-area:modes;grid-template-columns:1fr}.ttlAcct{grid-area:acct}.ttlSmall{grid-area:small}
+  .ttlHead h1{font-size:36px}
+  .ttlModes button{min-height:40px;padding:4px}
+}

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Sky Siege</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
@@ -37,12 +37,48 @@
   </div>
 </div>
 
+<!-- TITLE SCREEN -->
+<div id="titleScreen" class="screen titleScreen">
+  <div class="ttlWrap">
+    <header class="ttlHead"><h1>Sky Siege<small data-i18n="app.subtitle"></small></h1></header>
+    <div class="ttlMain">
+      <button id="ttlPlay" class="big ttlPlay" data-track="play" data-i18n="title.play"></button>
+      <button id="ttlContinue" class="ttlContinue hidden" data-track="continue"><b data-i18n="title.continue"></b><span id="ttlContinueSub"></span></button>
+    </div>
+    <div class="ttlModes" id="ttlModes">
+      <button data-tm="duel" data-track="mode_duel" data-i18n="mode.duel"></button>
+      <button data-tm="campaign" data-track="mode_campaign" data-i18n="mode.campaign"></button>
+      <button id="ttlGhost" class="soon" data-track="mode_ghost_soon" aria-disabled="true"><span data-i18n="title.ghost"></span><i class="ttlTag" data-i18n="title.soon"></i></button>
+    </div>
+    <div id="ttlAcct" class="ttlAcct hidden"><span id="ttlAcctTxt" class="hidden"></span><button id="ttlGoogle" data-track="google" data-i18n="title.google"></button></div>
+    <div class="ttlSmall">
+      <button id="ttlLb" class="hidden" data-track="leaderboard" data-i18n="lb.btn"></button>
+      <button id="ttlSettings" data-track="settings" data-i18n="title.settings"></button>
+      <button id="ttlLang" data-track="lang" data-i18n="lang.other"></button>
+    </div>
+  </div>
+</div>
+
+<div id="settingsScreen" class="screen hidden">
+  <div class="card setCard">
+    <h1 data-i18n="title.settings"></h1>
+    <div class="setList">
+      <button id="setSfx" data-track="settings_sfx"></button>
+      <button id="setMusic" data-track="settings_music"></button>
+      <button id="setLang" data-track="settings_lang"></button>
+      <button id="setAnalytics"></button>
+    </div>
+    <p class="small" data-i18n="set.an.note"></p>
+    <div class="row"><button id="setClose" data-track="settings_close" data-i18n="lb.close"></button></div>
+  </div>
+</div>
+
 <!-- BUILD SCREEN -->
-<div id="buildScreen" class="screen">
+<div id="buildScreen" class="screen hidden">
   <div class="card">
     <div class="top">
       <h1>Sky Siege<small data-i18n="app.subtitle">דו-קרב הממציאים</small></h1>
-      <div style="text-align:center"><div class="coins">🪙 <span id="coinTxt">0</span></div><div class="small" id="rankTxt" style="margin-top:4px;font-weight:700"></div><div class="bar" style="height:6px;margin-top:2px"><i id="rankBar" style="background:var(--gold)"></i></div><div id="acctBadge" class="acctBadge hidden"></div><div class="hdrBtns"><button id="lbBtn" class="hdrBtn hidden" data-i18n="lb.btn">🏆 שיאים</button><button id="langBtn" class="langBtn" data-i18n="lang.other">English</button></div></div>
+      <div style="text-align:center"><div class="coins">🪙 <span id="coinTxt">0</span></div><div class="small" id="rankTxt" style="margin-top:4px;font-weight:700"></div><div class="bar" style="height:6px;margin-top:2px"><i id="rankBar" style="background:var(--gold)"></i></div><div id="acctBadge" class="acctBadge hidden"></div><div class="hdrBtns"><button id="homeBtn" class="hdrBtn" data-i18n="title.home"></button><button id="lbBtn" class="hdrBtn hidden" data-i18n="lb.btn">🏆 שיאים</button><button id="langBtn" class="langBtn" data-i18n="lang.other">English</button></div></div>
     </div>
     <div class="seg modeSeg" id="modeSeg"><button data-m="duel" data-i18n="mode.duel">⚔ דו-קרב מול בוט</button><button data-m="campaign" data-i18n="mode.campaign">🏰 קמפיין מצור</button></div>
     <div class="small" id="modeDesc" style="text-align:center"></div>

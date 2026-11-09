@@ -3,6 +3,8 @@ import {castleSpec} from './castle.js';
 import {RANK_MAX} from './data.js';
 import {paperOverlay} from './draw/paper.js';
 import {render} from './draw/render.js';
+import {drawTitleScene} from './draw/title-scene.js';
+import {titleShown} from './ui/title.js';
 import {newGame,update} from './game.js';
 import {t} from './i18n/index.js';
 import {input,isTouch} from './input.js';
@@ -15,8 +17,8 @@ import {$} from './util.js';
 import {ctx,cv,resize} from './view.js';
 import {duckMusic,setMusicMode,sfx,soundFrame} from './sound.js';
 import {syncResume} from './sync/index.js';
-export let mode='menu',last=0,tipTimer=0;
-export function show(id){['buildScreen','resultScreen','pauseScreen'].forEach(s=>$(s).classList.toggle('hidden',s!==id));}
+export let mode='title',last=0,tipTimer=0;
+export function show(id){['titleScreen','buildScreen','resultScreen','pauseScreen'].forEach(s=>$(s).classList.toggle('hidden',s!==id));}
 export function setPlayUI(on){['hud','pauseBtn','soundBtn'].forEach(s=>$(s).classList.toggle('hidden',!on));$('touch').classList.toggle('hidden',!(on&&isTouch));$('shootBtn').classList.toggle('hidden',!(build.crossbows>0));}
 export function start(){
   sanitize();setPreviewStyle(null);
@@ -31,6 +33,7 @@ export function start(){
   setMusicMode('battle');duckMusic(false);sfx('launch');
 }
 export function toMenu(){tutorialEnd();setMusicMode('menu');duckMusic(false);mode='menu';setG(null);syncResume();setPlayUI(false);show('buildScreen');refreshBuild();resize();}
+export function toTitle(){tutorialEnd();setMusicMode('menu');duckMusic(false);mode='title';setG(null);syncResume();setPlayUI(false);show('titleScreen');titleShown();resize();}
 export function pause(){if(mode!=='play')return;mode='pause';show('pauseScreen');duckMusic(true);}
 export let shareText='';
 export function finish(){
@@ -87,7 +90,8 @@ export function loop(now){
   const dt=Math.min(0.033,(now-last)/1000||0);last=now;const t=now/1000;
   if(mode==='play'){update(dt);tutorialTick(dt);hud();}
   soundFrame(dt,mode==='play');
-  if(G&&mode!=='menu')render(t);
+  if(mode==='title'){if(!$('titleScreen').classList.contains('hidden'))drawTitleScene(t);}
+  else if(G&&mode!=='menu')render(t);
   else{ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#f4e6c8';ctx.fillRect(0,0,cv.width,cv.height);paperOverlay();}
   if(mode==='menu')drawPreview(t);
   requestAnimationFrame(loop);
@@ -96,7 +100,7 @@ export function initFlow(){
 $('pauseBtn').onclick=pause;
 $('resumeBtn').onclick=()=>{mode='play';show(null);last=performance.now();duckMusic(false);};
 $('quitBtn').onclick=()=>{if(G&&G.state==='play'){G.quit=true;G.state='lost';finish();}else toMenu();};
-$('launchBtn').onclick=start;$('againBtn').onclick=start;$('rebuildBtn').onclick=toMenu;
+$('homeBtn').onclick=toTitle;$('launchBtn').onclick=start;$('againBtn').onclick=start;$('rebuildBtn').onclick=toMenu;
 $('copyBtn').onclick=async()=>{try{await navigator.clipboard.writeText(shareText);$('copyMsg').textContent=t('res.copied');}catch(e){$('copyMsg').textContent=shareText;}};
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
 }

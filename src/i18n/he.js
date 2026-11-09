@@ -230,6 +230,21 @@ export default {
   'tut.rearm.siege': 'נגמרו הפצצות! חזור אל מעל מגדל הבית, לתוך המסגרת הירוקה, כדי לחמש',
   'tut.done': 'מעולה, אתה מוכן! עכשיו הפל את הטירה 🏰',
 
+  // ---- title screen & settings
+  'title.play': "שחק",
+  'title.continue': "המשך",
+  'title.contSub': "דרגה {r} · {name} · 🪙 {coins}",
+  'title.ghost': "👻 מרוץ רוחות",
+  'title.soon': "בקרוב",
+  'title.google': "התחברות עם Google",
+  'title.signedIn': "מחובר: {name} · דרגה {r}",
+  'title.signedInNoName': "מחובר · דרגה {r}",
+  'title.settings': "⚙ הגדרות",
+  'title.home': "🏠 מסך פתיחה",
+  'set.an.on': "📊 נתוני שימוש: פועל",
+  'set.an.off': "📊 נתוני שימוש: כבוי",
+  'set.an.note': "נתוני השימוש שולחים ל-Google Analytics את הלחיצות במסך הפתיחה ונתוני דפדפן כלליים, בלי עוגיות אחסון, כדי שנדע מה שחקנים בוחרים.",
+
   // ---- leaderboard
   'lb.btn': "🏆 שיאים",
   'lb.title': "🏆 שיאים",

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { runBattle } from './helpers/autopilot.js';
-import { openGame } from './helpers/page.js';
+import { openGame, fontsLoaded } from './helpers/page.js';
 
 // Phone screenshots, landscape and portrait, in Hebrew and English. Saved to
 // tests/screenshots/ (git-ignored) and attached to the test report.
@@ -18,7 +18,7 @@ for (const { lang, locale } of LANGS) for (const phone of PHONES) {
     test('screenshots: workshop, battle, result', async ({ page }, info) => {
       const errors = await openGame(page);
       expect(await page.evaluate(() => window.__sky.lang())).toBe(lang);
-      await page.evaluate(() => document.fonts.ready);
+      await fontsLoaded(page);
       const shot = async label => {
         const file = `tests/screenshots/${info.project.name}-${lang}-${phone.name}-${label}.png`;
         await page.screenshot({ path: file });

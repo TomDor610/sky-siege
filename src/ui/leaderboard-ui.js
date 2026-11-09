@@ -17,11 +17,13 @@ function updateEntry(){
   $('lbBtn').classList.toggle('hidden',!ok);
 }
 
+let lbFrom='buildScreen';
 export function openLeaderboard(){
-  $('buildScreen').classList.add('hidden');$('lbScreen').classList.remove('hidden');
+  if(!isOpen())lbFrom=$('titleScreen').classList.contains('hidden')?'buildScreen':'titleScreen';
+  $(lbFrom).classList.add('hidden');$('lbScreen').classList.remove('hidden');
   render();
 }
-function close(){$('lbScreen').classList.add('hidden');$('buildScreen').classList.remove('hidden');refreshBuild();}
+function close(){$('lbScreen').classList.add('hidden');$(lbFrom).classList.remove('hidden');if(lbFrom==='buildScreen')refreshBuild();}
 
 function renderMe(){
   const box=$('lbMe');
@@ -57,7 +59,7 @@ async function renderList(){
   $('lbMsg').textContent=t('lb.loading');
   let res;
   try{res=await loadList(tab,view);}
-  catch(e){if(seq!==loadSeq)return;$('lbBody').innerHTML='';$('lbPlace').textContent='';$('lbMsg').textContent=t('lb.offlineNone');return;}
+  catch(e){if(seq!==loadSeq)return;$('lbBody').innerHTML='';$('lbPlace').textContent='';const st=cloudInfo().status;$('lbMsg').textContent=st==='offline'||st==='error'?t('lb.offlineNone'):t('lb.loading');return;}
   if(seq!==loadSeq)return;
   const uid=myUid();
   $('lbBody').innerHTML=res.rows.map((r,i)=>`<tr class="${r.uid===uid?'me':''}" data-uid="${esc(r.uid)}">${cells(r,i+1)}</tr>`).join('');
@@ -104,9 +106,9 @@ export function initLeaderboardUI(){
   $('lbInviteYes').onclick=()=>{if(pendingRow){const row=pendingRow;pendingRow=null;tab='friends';openLeaderboard();friendMsg(addFriend(row),row.name);}};
   $('lbInviteNo').onclick=()=>{pendingRow=null;renderInvite();};
   // an invite link (?friend=CODE) opens the screen with a question once the cloud is ready
-  onInvite(row=>{if(row.uid===myUid())return;pendingRow=row;tab='friends';if(!$('buildScreen').classList.contains('hidden')||isOpen())openLeaderboard();});
+  onInvite(row=>{if(row.uid===myUid())return;pendingRow=row;tab='friends';if(!$('buildScreen').classList.contains('hidden')||!$('titleScreen').classList.contains('hidden')||isOpen())openLeaderboard();});
   onLbChange(()=>{if(isOpen())renderList();});
-  onSyncChange(()=>updateEntry());
+  onSyncChange(()=>{updateEntry();if(isOpen())renderList();}); // opened before the cloud was ready
   onLangChange(()=>{updateEntry();render();});
   updateEntry();
 }

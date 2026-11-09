@@ -32,6 +32,8 @@ export const onSyncChange=f=>listeners.push(f);
 const syncedListeners=[];
 export const onSynced=f=>syncedListeners.push(f);
 export const cloud=()=>({backend,user});
+// Known before Firebase has loaded, so the title screen does not have to wait for it.
+export const cloudConfigured=()=>!!window.__skyCloudBackend||(!!firebaseConfig&&!navigator.webdriver);
 export function info(){return {status,uid:user&&user.uid,isAnonymous:user?user.isAnonymous:null,name:user&&user.name||'',dirty:meta.dirty,syncs};}
 
 function currentSave(){return {prog,build,fort,buildAt:meta.buildAt||0};}

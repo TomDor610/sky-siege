@@ -66,7 +66,7 @@ export function drawGround(camx){
   ctx.strokeStyle=INK;ctx.lineWidth=1.9;ctx.beginPath();for(let x=Math.floor(x0/120)*120;x<x1;x+=120)sk(x-5,gy+(hsh(x)-.5)*2,x+125,gy+(hsh(x+120)-.5)*2,x*.01);ctx.stroke();
   ctx.strokeStyle='rgba(59,42,26,.55)';ctx.lineWidth=1.1;ctx.beginPath();
   for(let x=Math.floor(x0/37)*37;x<x1;x+=37){const h=hsh(x*.71);if(h<.5)continue;const bx=x+h*20;ctx.moveTo(bx,gy);ctx.quadraticCurveTo(bx-2,gy-6,bx-5,gy-9);ctx.moveTo(bx+2,gy);ctx.quadraticCurveTo(bx+3,gy-7,bx+6,gy-10);ctx.moveTo(bx+1,gy);ctx.lineTo(bx+1,gy-8);}ctx.stroke();
-  for(const tr of trees){if(tr.x<x0||tr.x>x1)continue;if(!G.duel&&tr.x>2900)continue;
+  for(const tr of trees){if(tr.x<x0||tr.x>x1)continue;if(G&&!G.duel&&tr.x>2900)continue;
     const s=tr.s,X=tr.x,h=hsh(X);
     ctx.fillStyle='rgba(112,126,72,.38)';ctx.beginPath();ctx.ellipse(X+2,gy-38*s,14*s,17*s,0,0,7);ctx.fill();
     ctx.fillStyle='rgba(84,98,52,.30)';ctx.beginPath();ctx.ellipse(X+5*s,gy-34*s,10*s,13*s,0,0,7);ctx.fill();
