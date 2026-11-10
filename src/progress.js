@@ -1,5 +1,5 @@
 // Progression, budget and localStorage persistence (keys must stay backward compatible).
-import {ALLUPG,BOMBTYPE,DEF,DIFF,DUEL_CASTLE_HP,DUEL_EXTRA,PARTS,RANKS,RANK_MAX,STYLES,UPG_MAX,WALL_COST,WALL_MAX} from './data.js';
+import {VS_POOL,ALLUPG,BOMBTYPE,DEF,DIFF,DUEL_CASTLE_HP,DUEL_EXTRA,PARTS,RANKS,RANK_MAX,STYLES,UPG_MAX,WALL_COST,WALL_MAX} from './data.js';
 import {build,fort,gameMode,prog,setBuild,setDifficulty,setFort,setGameMode,setProg} from './state.js';
 import {t} from './i18n/index.js';
 import {clamp,store} from './util.js';
@@ -38,24 +38,36 @@ export const myRank=()=>rankOf(prog.xp||0);
 export function budget(){return 100+10*prog.upg.workshop+5*(myRank()-1)}
 export function partCost(k,b){return k==='bombs'?BOMBTYPE[b.bombType].cost:PARTS[k].cost}
 export function spent(b){let s=0;for(const k in PARTS)s+=(b[k]||0)*partCost(k,b);return s}
-export function myCastleHP(){return Math.round(DUEL_CASTLE_HP*(1+0.25*fort.walls)*(1+0.1*prog.upg.stone));}
+// ---- 1v1 build mode: the workshop edits a separate loadout with the same budget for both
+// players, every style/part/weapon open and no upgrades or rank bonus. Saved apart from the
+// player's own build ('skysiege_1v1'), never synced to the cloud.
+export let vsMode=false;
+export function setVsMode(on){vsMode=on;}
+const ZERO_UPG=Object.freeze({frame:0,wings:0,props:0,armor:0,weapons:0,workshop:0,stone:0,ballista:0,archers:0,mangonel:0});
+export const owns=style=>vsMode||!!prog.styles[style];
+export const unlocked=k=>vsMode||!!prog.unl[k];
+export const upgNow=()=>(vsMode?ZERO_UPG:prog.upg);
+export const duelish=()=>vsMode||gameMode==='duel';
+const vsListeners=[];
+export const onVsSaved=f=>vsListeners.push(f);
+export function myCastleHP(){return Math.round(DUEL_CASTLE_HP*(1+0.25*fort.walls)*(1+0.1*upgNow().stone));}
 export function fortCost(f){return f.slots.reduce((a,t)=>a+(t?DEF[t].cost:0),0)+f.walls*WALL_COST}
-export function pool(){return budget()+(gameMode==='duel'?DUEL_EXTRA:0)}
-export function used(){return spent(build)+(gameMode==='duel'?fortCost(fort):0)}
+export function pool(){return vsMode?VS_POOL:budget()+(gameMode==='duel'?DUEL_EXTRA:0)}
+export function used(){return spent(build)+(duelish()?fortCost(fort):0)}
 export function sanitize(){
   for(const k in PARTS)build[k]=clamp(+build[k]||0,PARTS[k].min,PARTS[k].max);
-  if(!prog.unl.crossbow)build.crossbows=0;
-  if(!BOMBTYPE[build.bombType]||(build.bombType==='greek'&&!prog.unl.greek))build.bombType='stone';
-  if(!STYLES[build.style]||!prog.styles[build.style])build.style='classic';
+  if(!unlocked('crossbow'))build.crossbows=0;
+  if(!BOMBTYPE[build.bombType]||(build.bombType==='greek'&&!unlocked('greek')))build.bombType='stone';
+  if(!STYLES[build.style]||!owns(build.style))build.style='classic';
   for(let i=0;i<5;i++)if(fort.slots[i]&&!DEF[fort.slots[i]])fort.slots[i]=null;
-  if(!prog.unl.slot5)fort.slots[4]=null;
+  if(!unlocked('slot5'))fort.slots[4]=null;
   fort.walls=clamp(fort.walls,0,WALL_MAX);
   let guard=0;
   while(used()>pool()&&guard++<80){
-    if(gameMode==='duel'&&fort.walls>0){fort.walls--;continue;}
-    if(gameMode==='duel'){let j=-1;for(let i=4;i>=0;i--)if(fort.slots[i]){j=i;break;}if(j>=0){fort.slots[j]=null;continue;}}
+    if(duelish()&&fort.walls>0){fort.walls--;continue;}
+    if(duelish()){let j=-1;for(let i=4;i>=0;i--)if(fort.slots[i]){j=i;break;}if(j>=0){fort.slots[j]=null;continue;}}
     let done=false;for(const k of ['bombs','armor','crossbows','props','wings'])if(build[k]>PARTS[k].min){build[k]--;done=true;break;}
     if(!done)break;
   }
 }
-export function saveBuild(){store.set('skysiege_build2',JSON.stringify(build));store.set('skysiege_fort',JSON.stringify(fort));saved('build');}
+export function saveBuild(){if(vsMode){store.set('skysiege_1v1',JSON.stringify({build,fort}));vsListeners.forEach(f=>f());return;}store.set('skysiege_build2',JSON.stringify(build));store.set('skysiege_fort',JSON.stringify(fort));saved('build');}

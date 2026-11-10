@@ -34,6 +34,8 @@ export function start(){
 }
 export function toMenu(){tutorialEnd();setMusicMode('menu');duckMusic(false);mode='menu';setG(null);syncResume();setPlayUI(false);show('buildScreen');refreshBuild();resize();}
 export function toTitle(){tutorialEnd();setMusicMode('menu');duckMusic(false);mode='title';setG(null);syncResume();setPlayUI(false);show('titleScreen');titleShown();resize();}
+// the 1v1 blind build: the workshop, in 1v1 mode (see ui/vs-ui.js)
+export function toVsBuild(){mode='menu';setG(null);setPlayUI(false);show('buildScreen');refreshBuild();resize();}
 export function pause(){if(mode!=='play')return;mode='pause';show('pauseScreen');duckMusic(true);}
 export let shareText='';
 export function finish(){

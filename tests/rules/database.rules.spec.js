@@ -99,3 +99,83 @@ test('nothing outside rooms/ is reachable', async () => {
   await assertFails(db('hana').ref('other/x').get());
   expect(true).toBe(true);
 });
+
+// ---------------------------------------------------------------- stage 2: blind build
+const LOAD = (round, over = {}) => ({ round, build: { style: 'classic', bombType: 'stone', wings: 2, props: 2, armor: 1, bombs: 4, crossbows: 0 }, fort: { s: ['ballista', '-', 'archers', '-', '-'], walls: 0 }, ...over }); // costs 145
+const both = (meta = {}) => ({ meta: { v: 1, host: 'hana', guest: 'gil', createdAt: Date.now(), state: 'lobby', ...meta }, players: { hana: { name: 'Hana' }, gil: { name: 'Gil' } } });
+const building = (over = {}) => both({ state: 'build', round: 1, buildEndsAt: Date.now() + 60000, ...over });
+
+test('build: only the host starts it, with both players present, the next round and a ~60 s timer', async () => {
+  await seed('rooms/ABCD', both());
+  const start = (uid, v) => db(uid).ref('rooms/ABCD/meta').update(v);
+  await assertFails(start('gil', { state: 'build', round: 1, buildEndsAt: Date.now() + 60000 }));
+  await assertFails(start('hana', { state: 'build', round: 2, buildEndsAt: Date.now() + 60000 }));
+  await assertFails(start('hana', { state: 'build', round: 1, buildEndsAt: Date.now() + 5 * 60000 }));
+  await assertSucceeds(start('hana', { state: 'build', round: 1, buildEndsAt: Date.now() + 60000 }));
+  await seed('rooms/EFGH', { meta: { v: 1, host: 'hana', createdAt: Date.now(), state: 'lobby' }, players: { hana: { name: 'H' } } });
+  await assertFails(db('hana').ref('rooms/EFGH/meta').update({ state: 'build', round: 1, buildEndsAt: Date.now() + 60000 })); // alone
+});
+
+test('build: nobody joins a room in the middle of a match', async () => {
+  await seed('rooms/ABCD', { meta: { v: 1, host: 'hana', createdAt: Date.now(), state: 'build', round: 1, buildEndsAt: Date.now() + 60000 }, players: { hana: { name: 'H' } } });
+  await assertFails(db('late').ref('rooms/ABCD/meta/guest').set('late'));
+});
+
+test('build: each player writes only their own loadout, within the rules and the budget', async () => {
+  await seed('rooms/ABCD', building());
+  const mine = db('gil').ref('rooms/ABCD/loadouts/gil');
+  await assertSucceeds(mine.set(LOAD(1)));
+  await assertSucceeds(mine.set(LOAD(1, { fort: { s: ['mangonel', '-', 'archers', '-', '-'], walls: 0 } })));   // 155
+  await assertFails(mine.set(LOAD(1, { fort: { s: ['ballista', '-', 'archers', '-', '-'], walls: 3 } })));    // 190 > 180
+  await assertFails(mine.set(LOAD(1, { build: { ...LOAD(1).build, wings: 5 } })));
+  await assertFails(mine.set(LOAD(1, { build: { ...LOAD(1).build, style: 'dragon' } })));
+  await assertFails(mine.set(LOAD(1, { build: { ...LOAD(1).build, bombs: 2.5 } })));
+  await assertFails(mine.set(LOAD(1, { build: { ...LOAD(1).build, admin: 1 } })));
+  await assertFails(mine.set(LOAD(1, { fort: { s: ['cannon', '-', '-', '-', '-'], walls: 0 } })));
+  await assertFails(mine.set(LOAD(1, { fort: { s: ['-', '-', '-', '-'], walls: 0 } })));
+  await assertFails(mine.set(LOAD(2)));                                                                     // wrong round
+  await assertFails(db('gil').ref('rooms/ABCD/loadouts/hana').set(LOAD(1)));
+  await assertFails(db('outsider').ref('rooms/ABCD/loadouts/outsider').set(LOAD(1)));
+});
+
+test('blind: the opponent\'s loadout cannot be read before the reveal', async () => {
+  await seed('rooms/ABCD', { ...building(), loadouts: { hana: LOAD(1), gil: LOAD(1) } });
+  await assertSucceeds(db('gil').ref('rooms/ABCD/loadouts/gil').get());
+  await assertFails(db('gil').ref('rooms/ABCD/loadouts/hana').get());
+  await assertFails(db('gil').ref('rooms/ABCD/loadouts').get());
+  await assertFails(db('outsider').ref('rooms/ABCD/loadouts/hana').get());
+});
+
+test('ready: only yourself, only for this round', async () => {
+  await seed('rooms/ABCD', building());
+  await assertSucceeds(db('gil').ref('rooms/ABCD/ready/gil').set(1));
+  await assertSucceeds(db('gil').ref('rooms/ABCD/ready/gil').set(0));
+  await assertFails(db('gil').ref('rooms/ABCD/ready/gil').set(2));
+  await assertFails(db('gil').ref('rooms/ABCD/ready/hana').set(1));
+  await assertSucceeds(db('hana').ref('rooms/ABCD/ready').get());
+});
+
+test('reveal: when both are ready (not before); then both loadouts are readable and locked', async () => {
+  await seed('rooms/ABCD', { ...building(), loadouts: { hana: LOAD(1), gil: LOAD(1) }, ready: { hana: 1 } });
+  await assertFails(db('gil').ref('rooms/ABCD/meta/state').set('reveal'));
+  await assertSucceeds(db('gil').ref('rooms/ABCD/ready/gil').set(1));
+  await assertSucceeds(db('gil').ref('rooms/ABCD/meta/state').set('reveal'));
+  await assertSucceeds(db('gil').ref('rooms/ABCD/loadouts/hana').get());
+  await assertSucceeds(db('hana').ref('rooms/ABCD/loadouts/gil').get());
+  await assertFails(db('outsider').ref('rooms/ABCD/loadouts/gil').get());
+  await assertFails(db('gil').ref('rooms/ABCD/loadouts/gil').set(LOAD(1, { fort: { s: ['mangonel', '-', '-', '-', '-'], walls: 0 } })));
+  await assertFails(db('gil').ref('rooms/ABCD/ready/gil').set(0));
+});
+
+test('reveal: when the time is up, even if someone is not ready; late changes are refused', async () => {
+  await seed('rooms/ABCD', { ...building({ buildEndsAt: Date.now() - 5000 }), loadouts: { hana: LOAD(1), gil: LOAD(1) } });
+  await assertFails(db('gil').ref('rooms/ABCD/loadouts/gil').set(LOAD(1, { build: { ...LOAD(1).build, style: 'bat' } })));
+  await assertSucceeds(db('hana').ref('rooms/ABCD/meta/state').set('reveal'));
+});
+
+test('back to the lobby: the host only', async () => {
+  await seed('rooms/ABCD', building({ state: 'reveal' }));
+  await assertFails(db('gil').ref('rooms/ABCD/meta/state').set('lobby'));
+  await assertFails(db('gil').ref('rooms/ABCD/meta/state').set('build'));
+  await assertSucceeds(db('hana').ref('rooms/ABCD/meta/state').set('lobby'));
+});

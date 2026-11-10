@@ -21,6 +21,7 @@ export async function joinPlayer(browser, info, { locale = 'he-IL', viewport = {
   page.on('websocket', ws => { if (ws.url().includes(':9000')) sockets.push(ws); });
   await ctx.addInitScript(([e, s]) => {
     window.__skyEmulators = e;
+    localStorage.setItem('skysiege_beta', '1');
     if (s === 'stub') { window.__shared = []; Object.defineProperty(navigator, 'share', { configurable: true, value: async d => { window.__shared.push(d); } }); }
     else Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
   }, [{ ...EMU, ...emu }, share]);

@@ -13,7 +13,7 @@ const listeners=[];
 export const onRoomChange=f=>listeners.push(f);
 const notify=()=>listeners.forEach(f=>f());
 
-// {code, role, uid, meta, players} while in a room; ended = why the last room ended
+// {code, role, uid, meta, players, ready} while in a room; ended = why the last room ended
 export const roomInfo=()=>({room,ended});
 export const clearEnded=()=>{ended=null;notify();};
 
@@ -38,7 +38,7 @@ function cleanup(){
 function end(reason){cleanup();ended=reason;notify();}
 
 function enter(code,role,uid){
-  room={code,role,uid,meta:null,players:{}};ended=null;
+  room={code,role,uid,meta:null,players:{},ready:{}};ended=null;
   let wasConnected=false;
   stops.push(net.onConnected(c=>{
     if(c)wasConnected=true;
@@ -50,6 +50,7 @@ function enter(code,role,uid){
     room.meta=m;notify();
   }));
   stops.push(net.watchPlayers(code,p=>{if(room){room.players=p;notify();}}));
+  stops.push(net.watchReady(code,r=>{if(room){room.ready=r;notify();}}));
   if(role==='host')expiry=setTimeout(checkExpiry,ROOM_TTL+1000);
   notify();
 }
@@ -98,6 +99,26 @@ export async function leaveRoom(){
   stops.forEach(s=>s());stops=[];
   try{await timed(role==='host'?net.closeRoom(code):net.leaveSeat(code,uid));}catch(e){}
   cleanup();ended=null;notify();
+}
+
+// ---- blind build (stage 2): the server clock decides when the 60 seconds are up
+export const BUILD_MS=60000;
+export const serverNow=()=>(net?net.now():Date.now());
+export const opponentOf=r=>(r.role==='host'?r.meta.guest:r.meta.host);
+export const bothHere=r=>!!(r&&r.meta&&r.meta.guest&&r.players[r.meta.guest]&&r.players[r.meta.host]);
+export async function startBuild(){
+  const r=room;if(!r||r.role!=='host'||!bothHere(r))return;
+  await timed(net.startBuild(r.code,(r.meta.round||0)+1,Math.round(serverNow()+BUILD_MS)));
+}
+export async function saveLoadout(l){const r=room;if(r)await timed(net.saveLoadout(r.code,r.uid,{round:r.meta.round,...l}));}
+export async function setReady(on){const r=room;if(r)await timed(net.setReady(r.code,r.uid,on?r.meta.round:0));}
+// Both players try; the rules accept it once (both ready, or the time is up).
+export async function reveal(){const r=room;if(r&&r.meta&&r.meta.state==='build'){try{await timed(net.setState(r.code,'reveal'));}catch(e){}}}
+export async function backToLobby(){const r=room;if(r&&r.role==='host'){try{await timed(net.setState(r.code,'lobby'));}catch(e){}}}
+export async function readLoadouts(){
+  const r=room;if(!r)return null;
+  const [mine,theirs]=await Promise.all([timed(net.readLoadout(r.code,r.uid)),timed(net.readLoadout(r.code,opponentOf(r)))]);
+  return {mine,theirs};
 }
 
 export function roomLink(code){

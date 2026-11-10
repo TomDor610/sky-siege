@@ -9,27 +9,129 @@
           ".read": "auth != null",
           ".write": "auth != null && $code.matches(/^[A-HJ-NP-Z]{4}$/) && newData.child('host').val() === auth.uid && (!data.exists() || data.child('createdAt').val() < now - 600000)",
           ".validate": "newData.hasChildren(['v', 'host', 'createdAt', 'state'])",
-          "v": { ".validate": "newData.val() === 1" },
-          "host": { ".validate": "newData.isString() && newData.val() === auth.uid" },
-          "createdAt": { ".validate": "newData.val() === now" },
-          "state": { ".validate": "newData.val() === 'lobby'" },
+          "v": {
+            ".validate": "newData.val() === 1"
+          },
+          "host": {
+            ".validate": "newData.isString() && newData.val() === auth.uid"
+          },
+          "createdAt": {
+            ".validate": "newData.val() === now"
+          },
           "guest": {
-            ".write": "auth != null && ((!data.exists() && newData.val() === auth.uid && data.parent().child('host').val() !== auth.uid && data.parent().child('createdAt').val() >= now - 600000) || (data.val() === auth.uid && (!newData.exists() || newData.val() === auth.uid)))",
+            ".write": "auth != null && ((!data.exists() && newData.val() === auth.uid && data.parent().child('host').val() !== auth.uid && data.parent().child('createdAt').val() >= now - 600000 && data.parent().child('state').val() === 'lobby') || (data.val() === auth.uid && (!newData.exists() || newData.val() === auth.uid)))",
             ".validate": "newData.isString()"
           },
-          "$other": { ".validate": false }
-        },
-        "players": {
-          ".read": "auth != null && (root.child('rooms').child($code).child('meta/host').val() === auth.uid || root.child('rooms').child($code).child('meta/guest').val() === auth.uid)",
-          ".write": "auth != null && root.child('rooms').child($code).child('meta/host').val() === auth.uid && newData.child(auth.uid).exists()",
-          "$uid": {
-            ".write": "auth != null && auth.uid === $uid && (root.child('rooms').child($code).child('meta/host').val() === auth.uid || root.child('rooms').child($code).child('meta/guest').val() === auth.uid)",
-            ".validate": "newData.hasChildren(['name'])",
-            "name": { ".validate": "newData.isString() && newData.val().length <= 16 && newData.val().matches(/^[A-Za-z0-9א-ת _-]*$/)" },
-            "$other": { ".validate": false }
+          "state": {
+            ".write": "auth != null && (root.child('rooms').child($code).child('meta').child('host').val() === auth.uid || root.child('rooms').child($code).child('meta').child('guest').val() === auth.uid) && data.exists() && ((newData.val() === 'build' && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid && data.val() !== 'build' && data.parent().child('guest').exists() && root.child('rooms').child($code).child('players').child(data.parent().child('guest').val()).exists() && newData.parent().child('round').val() === (data.parent().child('round').exists() ? data.parent().child('round').val() + 1 : 1)) || (newData.val() === 'reveal' && data.val() === 'build' && ((root.child('rooms').child($code).child('ready').child(data.parent().child('host').val()).val() === data.parent().child('round').val() && root.child('rooms').child($code).child('ready').child(data.parent().child('guest').val()).val() === data.parent().child('round').val()) || now >= data.parent().child('buildEndsAt').val())) || (newData.val() === 'lobby' && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid))",
+            ".validate": "newData.val() === 'lobby' || newData.val() === 'build' || newData.val() === 'reveal'"
+          },
+          "round": {
+            ".write": "auth != null && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid && newData.parent().child('state').val() === 'build' && data.parent().child('state').val() !== 'build'",
+            ".validate": "newData.isNumber() && (data.exists() ? newData.val() === data.val() + 1 : newData.val() === 1)"
+          },
+          "buildEndsAt": {
+            ".write": "auth != null && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid && newData.parent().child('state').val() === 'build' && data.parent().child('state').val() !== 'build'",
+            ".validate": "newData.isNumber() && newData.val() >= now + 50000 && newData.val() <= now + 70000"
+          },
+          "$other": {
+            ".validate": false
           }
         },
-        "$other": { ".validate": false }
+        "players": {
+          ".read": "auth != null && (root.child('rooms').child($code).child('meta').child('host').val() === auth.uid || root.child('rooms').child($code).child('meta').child('guest').val() === auth.uid)",
+          ".write": "auth != null && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid && newData.child(auth.uid).exists()",
+          "$uid": {
+            ".write": "auth != null && (root.child('rooms').child($code).child('meta').child('host').val() === auth.uid || root.child('rooms').child($code).child('meta').child('guest').val() === auth.uid) && auth.uid === $uid",
+            ".validate": "newData.hasChildren(['name'])",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length <= 16 && newData.val().matches(/^[A-Za-z0-9א-ת _-]*$/)"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "ready": {
+          ".read": "auth != null && (root.child('rooms').child($code).child('meta').child('host').val() === auth.uid || root.child('rooms').child($code).child('meta').child('guest').val() === auth.uid)",
+          "$uid": {
+            ".write": "auth != null && (root.child('rooms').child($code).child('meta').child('host').val() === auth.uid || root.child('rooms').child($code).child('meta').child('guest').val() === auth.uid) && auth.uid === $uid && root.child('rooms').child($code).child('meta').child('state').val() === 'build' && now <= root.child('rooms').child($code).child('meta').child('buildEndsAt').val() + 2000",
+            ".validate": "newData.isNumber() && (newData.val() === 0 || newData.val() === root.child('rooms').child($code).child('meta').child('round').val())"
+          }
+        },
+        "loadouts": {
+          "$uid": {
+            ".read": "auth != null && (auth.uid === $uid || ((root.child('rooms').child($code).child('meta').child('host').val() === auth.uid || root.child('rooms').child($code).child('meta').child('guest').val() === auth.uid) && root.child('rooms').child($code).child('meta').child('state').val() === 'reveal'))",
+            ".write": "auth != null && (root.child('rooms').child($code).child('meta').child('host').val() === auth.uid || root.child('rooms').child($code).child('meta').child('guest').val() === auth.uid) && auth.uid === $uid && root.child('rooms').child($code).child('meta').child('state').val() === 'build' && now <= root.child('rooms').child($code).child('meta').child('buildEndsAt').val() + 2000",
+            ".validate": "newData.hasChildren(['round', 'build', 'fort']) && newData.child('round').val() === root.child('rooms').child($code).child('meta').child('round').val() && newData.child('build/wings').val() * 15 + newData.child('build/props').val() * 20 + newData.child('build/armor').val() * 10 + newData.child('build/bombs').val() * (newData.child('build/bombType').val() === 'greek' ? 8 : 5) + newData.child('build/crossbows').val() * 15 + (newData.child('fort/s/0').val() === 'ballista' ? 25 : (newData.child('fort/s/0').val() === 'archers' ? 20 : (newData.child('fort/s/0').val() === 'mangonel' ? 35 : 0))) + (newData.child('fort/s/1').val() === 'ballista' ? 25 : (newData.child('fort/s/1').val() === 'archers' ? 20 : (newData.child('fort/s/1').val() === 'mangonel' ? 35 : 0))) + (newData.child('fort/s/2').val() === 'ballista' ? 25 : (newData.child('fort/s/2').val() === 'archers' ? 20 : (newData.child('fort/s/2').val() === 'mangonel' ? 35 : 0))) + (newData.child('fort/s/3').val() === 'ballista' ? 25 : (newData.child('fort/s/3').val() === 'archers' ? 20 : (newData.child('fort/s/3').val() === 'mangonel' ? 35 : 0))) + (newData.child('fort/s/4').val() === 'ballista' ? 25 : (newData.child('fort/s/4').val() === 'archers' ? 20 : (newData.child('fort/s/4').val() === 'mangonel' ? 35 : 0))) + newData.child('fort/walls').val() * 15 <= 180",
+            "round": {
+              ".validate": "newData.isNumber()"
+            },
+            "build": {
+              ".validate": "newData.hasChildren(['style', 'bombType', 'wings', 'props', 'armor', 'bombs', 'crossbows'])",
+              "style": {
+                ".validate": "newData.isString() && (newData.val() === 'classic' || newData.val() === 'falcon' || newData.val() === 'galleon' || newData.val() === 'bat' || newData.val() === 'airship')"
+              },
+              "bombType": {
+                ".validate": "newData.isString() && (newData.val() === 'stone' || newData.val() === 'greek')"
+              },
+              "$other": {
+                ".validate": false
+              },
+              "wings": {
+                ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 1 && newData.val() <= 4"
+              },
+              "props": {
+                ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 1 && newData.val() <= 4"
+              },
+              "armor": {
+                ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 5"
+              },
+              "bombs": {
+                ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 1 && newData.val() <= 12"
+              },
+              "crossbows": {
+                ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 2"
+              }
+            },
+            "fort": {
+              ".validate": "newData.hasChildren(['s', 'walls'])",
+              "s": {
+                "0": {
+                  ".validate": "newData.isString() && (newData.val() === '-' || newData.val() === 'ballista' || newData.val() === 'archers' || newData.val() === 'mangonel')"
+                },
+                "1": {
+                  ".validate": "newData.isString() && (newData.val() === '-' || newData.val() === 'ballista' || newData.val() === 'archers' || newData.val() === 'mangonel')"
+                },
+                "2": {
+                  ".validate": "newData.isString() && (newData.val() === '-' || newData.val() === 'ballista' || newData.val() === 'archers' || newData.val() === 'mangonel')"
+                },
+                "3": {
+                  ".validate": "newData.isString() && (newData.val() === '-' || newData.val() === 'ballista' || newData.val() === 'archers' || newData.val() === 'mangonel')"
+                },
+                "4": {
+                  ".validate": "newData.isString() && (newData.val() === '-' || newData.val() === 'ballista' || newData.val() === 'archers' || newData.val() === 'mangonel')"
+                },
+                ".validate": "newData.hasChildren(['0', '1', '2', '3', '4'])",
+                "$other": {
+                  ".validate": false
+                }
+              },
+              "walls": {
+                ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 3"
+              },
+              "$other": {
+                ".validate": false
+              }
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     }
   }

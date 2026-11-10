@@ -42,6 +42,8 @@ export const UNLOCKS={
 export const DEF={ballista:{hp:2,cost:25},archers:{hp:1,cost:20},mangonel:{hp:2,cost:35}};
 export const DEF_ORDER=[null,'ballista','archers','mangonel'];
 export const WALL_COST=15,WALL_MAX=3,DUEL_EXTRA=80,DUEL_TIME=150,DUEL_CASTLE_HP=200;
+// 1v1: the same budget for both players (= a new player's duel budget); see database.rules.json
+export const VS_POOL=180;
 export const SLOT_COLS={L:[10,7,5,0,2],R:[0,3,5,10,8]};
 export const DIFF={
   easy:{castleHP:120,fire:3.0,lead:0,spread:.15,ballistae:[5],mult:1},

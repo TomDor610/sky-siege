@@ -76,7 +76,16 @@
       <div id="roomInviteMsg" class="small lbMsg"></div>
       <div id="roomPlayers" class="lbBox"></div>
       <div id="roomStatus" class="roomStatus"></div>
-      <div class="row"><button id="roomLeave" data-i18n="room.leave"></button></div>
+      <div id="roomLobbyMsg" class="small lbMsg" style="color:var(--red)"></div>
+      <div id="roomWaitHost" class="small"></div>
+      <div class="row"><button id="roomStart" class="roomStartBtn hidden" data-i18n="room.start"></button><button id="roomLeave" data-i18n="room.leave"></button></div>
+    </div>
+    <div id="roomReveal" class="hidden">
+      <h2 data-i18n="vs.revealTitle"></h2>
+      <div class="vsCols"><div id="vsMine" class="vsCol"></div><div id="vsTheirs" class="vsCol"></div></div>
+      <p class="small" data-i18n="vs.nextStage"></p>
+      <div class="row"><button id="roomBackLobby" data-i18n="vs.back"></button></div>
+      <div id="roomRevealWait" class="small"></div>
     </div>
   </div>
 </div>
@@ -98,6 +107,13 @@
 <!-- BUILD SCREEN -->
 <div id="buildScreen" class="screen hidden">
   <div class="card">
+    <div id="vsBar" class="vsBar">
+      <span id="vsTimer" class="vsTimer"></span>
+      <span id="vsOpp" class="small vsOpp"></span>
+      <button id="vsReady"></button>
+      <button id="vsLeave" data-i18n="room.leave"></button>
+      <div id="vsHint" class="small vsHint"></div>
+    </div>
     <div class="top">
       <h1>Sky Siege<small data-i18n="app.subtitle">דו-קרב הממציאים</small></h1>
       <div style="text-align:center"><div class="coins">🪙 <span id="coinTxt">0</span></div><div class="small" id="rankTxt" style="margin-top:4px;font-weight:700"></div><div class="bar" style="height:6px;margin-top:2px"><i id="rankBar" style="background:var(--gold)"></i></div><div id="acctBadge" class="acctBadge hidden"></div><div class="hdrBtns"><button id="homeBtn" class="hdrBtn" data-i18n="title.home"></button><button id="lbBtn" class="hdrBtn hidden" data-i18n="lb.btn">🏆 שיאים</button><button id="langBtn" class="langBtn" data-i18n="lang.other">English</button></div></div>

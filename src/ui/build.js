@@ -6,7 +6,7 @@ import {drawMachine} from '../draw/machine.js';
 import {t} from '../i18n/index.js';
 import {isTouch} from '../input.js';
 import {stats} from '../physics.js';
-import {costOf,spendCoins,defaultBuild,defaultFort,fortCost,freshProg,myCastleHP,myRank,partCost,pool,rankName,sanitize,saveBuild,saveProg,upgMax,used,xpFor} from '../progress.js';
+import {costOf,duelish,owns,unlocked,upgNow,vsMode,spendCoins,defaultBuild,defaultFort,fortCost,freshProg,myCastleHP,myRank,partCost,pool,rankName,sanitize,saveBuild,saveProg,upgMax,used,xpFor} from '../progress.js';
 import {build,difficulty,fort,gameMode,prog,setBuild,setDifficulty,setFort,setGameMode,setProg} from '../state.js';
 import {$,clamp,store} from '../util.js';
 export const preview=$('preview'),pctx=preview.getContext('2d');
@@ -16,7 +16,7 @@ export function renderStyles(){
   const box=$('styles');box.innerHTML='';
   const cur=previewStyle||build.style;
   for(const k in STYLES){
-    const S=STYLES[k],own=!!prog.styles[k];
+    const S=STYLES[k],own=owns(k);
     const b=document.createElement('button');b.className='sty'+(k===cur?' on':'')+(own?'':' locked');
     b.innerHTML=`<b>${t(`style.${k}.name`)}</b><i>${own?t(`style.${k}.tag`):t('style.lockedTag',{cost:S.cost})}</i>`;
     b.onclick=()=>{if(own){build.style=k;previewStyle=null;saveBuild();}else previewStyle=k;refreshBuild();};
@@ -24,7 +24,7 @@ export function renderStyles(){
   }
   const S=STYLES[cur];$('styDesc').textContent=t(`style.${cur}.desc`);
   const ub=$('unlockStyle');
-  if(previewStyle&&!prog.styles[previewStyle]){
+  if(previewStyle&&!owns(previewStyle)){
     ub.classList.remove('hidden');ub.disabled=prog.coins<S.cost;
     ub.textContent=prog.coins>=S.cost?t('style.unlock',{name:t(`style.${cur}.name`),cost:S.cost}):t('style.need',{cost:S.cost,missing:S.cost-prog.coins});
     ub.onclick=()=>{if(prog.coins<S.cost)return;spendCoins(S.cost);prog.styles[previewStyle]=true;build.style=previewStyle;previewStyle=null;saveProg();saveBuild();refreshBuild();};
@@ -39,23 +39,23 @@ export function partRow(box,label,cost,desc,val,canDec,canInc,onDec,onInc){
 export function renderParts(){
   const box=$('parts');box.innerHTML='';const free=pool()-used();
   for(const k in PARTS){
-    const p=PARTS[k];if(p.req&&!prog.unl[p.req])continue;
+    const p=PARTS[k];if(p.req&&!unlocked(p.req))continue;
     const c=partCost(k,build);
     partRow(box,k==='bombs'?t(`bomb.${build.bombType}.plural`):t(`part.${k}.name`),c,t(`part.${k}.desc`),build[k],build[k]>p.min,build[k]<p.max&&c<=free,
       ()=>{build[k]--;saveBuild();refreshBuild();},()=>{build[k]++;saveBuild();refreshBuild();});
   }
   $('bombSeg').querySelectorAll('button').forEach(b=>{
-    const bt=b.dataset.b,locked=bt==='greek'&&!prog.unl.greek;
+    const bt=b.dataset.b,locked=bt==='greek'&&!unlocked('greek');
     b.classList.toggle('on',build.bombType===bt);b.disabled=locked;b.textContent=t(`bomb.${bt}.name`)+(locked?' 🔒':'');
     b.onclick=()=>{build.bombType=bt;sanitize();saveBuild();refreshBuild();};
   });
 }
 export function renderFort(){
-  $('fortBox').classList.toggle('hidden',gameMode!=='duel');
-  if(gameMode!=='duel')return;
+  $('fortBox').classList.toggle('hidden',!duelish());
+  if(!duelish())return;
   const box=$('slots');box.innerHTML='';
   // visual order left->right on screen: back tower, keep, wall, front tower (enemy comes from right)
-  const visual=prog.unl.slot5?[3,4,2,1,0]:[3,2,1,0];box.style.setProperty('--nslots',visual.length);
+  const visual=unlocked('slot5')?[3,4,2,1,0]:[3,2,1,0];box.style.setProperty('--nslots',visual.length);
   for(const i of visual){
     const d=fort.slots[i];
     const b=document.createElement('button');b.className='slot'+(d?' filled':'');
@@ -75,17 +75,18 @@ export function renderFort(){
   $('fortInfo').textContent=t('fort.info',{hp,cost:fortCost(fort)});
   drawFortPic();
 }
-export function drawFortPic(){
-  const c=$('fortPic'),x=c.getContext('2d'),dp=window.devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;if(!w)return;
+// c/f/slot5 default to the workshop's own picture; the 1v1 reveal screen draws both castles
+export function drawFortPic(c=$('fortPic'),f=fort,slot5=unlocked('slot5'),label=true){
+  const x=c.getContext('2d'),dp=window.devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;if(!w)return;
   if(c.width!==Math.round(w*dp)){c.width=Math.round(w*dp);c.height=Math.round(h*dp);}
   x.setTransform(dp,0,0,dp,0,0);x.clearRect(0,0,w,h);
-  const hs=castleHeightsFor(fort.walls),cw=Math.min(16,w/14),x0=(w-cw*11)/2,base=h-4,u=Math.min(5.5,(h-14)/9);
+  const hs=castleHeightsFor(f.walls),cw=Math.min(16,w/14),x0=(w-cw*11)/2,base=h-4,u=Math.min(5.5,(h-14)/9);
   x.strokeStyle=INK;x.lineWidth=1;
   for(let i=0;i<11;i++){x.fillStyle=i>=4&&i<=6?'#c9ad7e':'#d6bd8f';x.fillRect(x0+i*cw,base-hs[i]*u,cw,hs[i]*u);x.strokeRect(x0+i*cw,base-hs[i]*u,cw,hs[i]*u);}
-  SLOT_COLS.L.forEach((col,i)=>{if(i===4&&!prog.unl.slot5)return;const d=fort.slots[i];const cx=x0+col*cw+cw/2,cy=base-hs[col]*u-6;
+  SLOT_COLS.L.forEach((col,i)=>{if(i===4&&!slot5)return;const d=f.slots[i];const cx=x0+col*cw+cw/2,cy=base-hs[col]*u-6;
     x.fillStyle=d?'#a3341f':'rgba(107,79,51,.35)';x.beginPath();x.arc(cx,cy,5,0,7);x.fill();x.stroke();});
   // the enemy always comes from the right (the world does not mirror with the language)
-  x.fillStyle=INK;x.font='bold 12px "Frank Ruhl Libre",serif';x.textAlign='right';x.fillText(t('fort.enemyFrom'),w-2,12);
+  if(label){x.fillStyle=INK;x.font='bold 12px "Frank Ruhl Libre",serif';x.textAlign='right';x.fillText(t('fort.enemyFrom'),w-2,12);}
 }
 export function renderShop(){
   const box=$('shop');box.innerHTML='';
@@ -116,15 +117,16 @@ export function renderShop(){
 export let resetArm=0;
 export function refreshBuild(){
   sanitize();
-  document.body.classList.toggle('duel',gameMode==='duel');
+  document.body.classList.toggle('duel',duelish());
+  document.body.classList.toggle('vs1',vsMode);
   $('coinTxt').textContent=prog.coins;
   {const r=myRank(),x=prog.xp||0;$('rankTxt').textContent=t('rank.label',{r,name:rankName(r)});$('rankBar').style.width=(r>=RANK_MAX?100:clamp((x-xpFor(r))/(xpFor(r+1)-xpFor(r)),0,1)*100)+'%';$('rankTxt').title=r>=RANK_MAX?t('rank.max'):t('rank.next',{xp:xpFor(r+1)-x});}
   document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.m===gameMode));
   $('modeDesc').textContent=gameMode==='duel'?t('mode.duelDesc'):t('mode.campaignDesc');
   renderStyles();renderParts();renderFort();renderShop();
-  $('poolLbl').innerHTML=(gameMode==='duel'?t('pool.duel'):t('pool.campaign'))+(myRank()>1?`<br><span class="small">${t('pool.bonus',{pts:5*(myRank()-1),r:myRank()})}</span>`:'');
+  $('poolLbl').innerHTML=vsMode?t('vs.pool'):(gameMode==='duel'?t('pool.duel'):t('pool.campaign'))+(myRank()>1?`<br><span class="small">${t('pool.bonus',{pts:5*(myRank()-1),r:myRank()})}</span>`:'');
   $('goldLeft').textContent=`${pool()-used()} / ${pool()}`;
-  const show=Object.assign({},build,{style:previewStyle||build.style});const s=stats(show);
+  const show=Object.assign({},build,{style:previewStyle||build.style});const s=stats(show,upgNow());
   const pct=(el,v)=>$(el).style.width=(clamp(v,0.03,1)*100)+'%';
   pct('sSpeed',s.vmax/460);pct('sStab',1-(s.vstall-40)/200);pct('sAgi',(s.agility-0.6)/2.2);pct('sHp',s.hp/320);pct('sFire',s.fire/700);
   let w='';
@@ -142,7 +144,7 @@ export function refreshBuild(){
     $('diffDesc').innerHTML=`<b>${t('castle.level',{lvl:sp.lvl})}</b> · ${t('castle.strength',{hp:sp.castleHP})} · ${t('castle.defs',{list:defsSummary(sp)})}${sp.newest?` · <b style="color:var(--red)">${t('castle.new',{name:t(`def.${sp.newest}.name`)})}</b>`:''}<br>${t('castle.grows')}${best?' '+t('castle.best',{s:best.toFixed(1)}):''}`;
   }
   const lb=$('launchBtn');
-  if(previewStyle&&!prog.styles[previewStyle]){lb.disabled=true;lb.textContent=t('launch.locked');}
+  if(previewStyle&&!owns(previewStyle)){lb.disabled=true;lb.textContent=t('launch.locked');}
   else{lb.disabled=false;lb.textContent=gameMode==='duel'?t('launch.duel'):t('launch.siege');}
 }
 export function drawPreview(time){
@@ -151,7 +153,7 @@ export function drawPreview(time){
   pctx.setTransform(dp,0,0,dp,0,0);pctx.clearRect(0,0,w,h);
   pctx.strokeStyle='rgba(107,79,51,.25)';pctx.lineWidth=1;
   for(let x=10;x<w;x+=20){pctx.beginPath();pctx.moveTo(x,0);pctx.lineTo(x,h);pctx.stroke();}
-  const show=Object.assign({},build,{style:previewStyle||build.style});const s=stats(show);
+  const show=Object.assign({},build,{style:previewStyle||build.style});const s=stats(show,upgNow());
   pctx.save();const air=show.style==='airship';const sc=Math.min(w/125,h/(air?95:60));
   pctx.translate(w/2+4,h/2+(air?19*sc:2*sc)+Math.sin(time*2)*3);pctx.scale(sc,sc);
   drawMachine(pctx,show,time,s.bombsMax,false);pctx.restore();

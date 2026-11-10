@@ -46,7 +46,7 @@
 | `ui/leaderboard-ui.js` | מסך "🏆 שיאים": לשוניות חברים/כולם, בורר קמפיין קל/בינוני/קשה/דו-קרב, כינוי, קוד חבר והזמנה |
 | `ui/title.js`, `draw/title-scene.js` | מסך הפתיחה (המסך הראשון, `mode='title'`): "שחק" נכנס ישר לקרב (שחקן חדש: קמפיין קל והדרכה, אלא אם בחר מצב; שחקן חוזר: הבחירה האחרונה), "המשך" פותח את הסדנה, כרטיסי מצב, שורת חשבון, הגדרות. הרקע החי משתמש בפונקציות הציור של המשחק, בלי סימולציה |
 | `analytics.js`, `sync/analytics-firebase.js` | `track(name,params)`: אירועי מסך הפתיחה ל-Firebase Analytics, נטען ברקע, במצב בלי עוגיות (`analytics_storage: denied`). כיבוי בהגדרות נשמר ב-`skysiege_analytics` |
-| `net/`, `ui/room-ui.js` | 1v1 בחדרים פרטיים (החלטות ושלבים: `docs/design/1v1.md`). `code.js`: קודי חדר. `rtdb.js`: Realtime Database, נטען ומתחבר רק בזמן שנמצאים בחדר. `room.js`: יצירה, הצטרפות, נוכחות, יציאה |
+| `net/`, `ui/room-ui.js` | 1v1 בחדרים פרטיים (החלטות ושלבים: `docs/design/1v1.md`). `code.js`: קודי חדר. `rtdb.js`: Realtime Database, נטען ומתחבר רק בזמן שנמצאים בחדר. `room.js`: יצירה, הצטרפות, נוכחות, יציאה, ושלבי הבנייה. `loadout.js`: קידוד הבנייה ובדיקת עלות (זהה לכללים). `ui/vs-ui.js`: הבנייה העיוורת (הסדנה ב-`vsMode`: תקציב `VS_POOL`, הכול פתוח, בלי שדרוגים) |
 | `ui/cloud-ui.js` | שורת מצב הענן וכפתור Google/התנתק בסדנה |
 | `flow.js` | ‏`start`, `pause`, `finish` (מסך תוצאה ומטבעות), `loop` |
 | `main.js` | אתחול לפי סדר קבוע ו-`window.__sky` |
@@ -65,7 +65,7 @@
 - **ציור:** `drawMachine`, `drawCastle`, `drawSky`, `drawGround`, `paperOverlay` (מרקם נייר ב-multiply ו-vignette), ופונקציות קו "ביד": `sk`, `skRect`, `hsh`.
 
 ### שמירה (localStorage)
-מפתחות: `skysiege_prog`, `skysiege_build2`, `skysiege_fort`, `skysiege_diff`, `skysiege_mode`, `skysiege_tutorial` (`done`/`skipped`; ההדרכה מופיעה רק לשחקן בלי XP ובלי ניצחונות, ורק עד שהמפתח קיים), `skysiege_sound` (`{muted,sfx,music}`, ברירת מחדל: הכול פועל), `skysiege_sync` (`{buildAt,dirty}`, רישום מקומי של הסנכרון), `skysiege_lb` (השורה האחרונה שפורסמה) ו-`skysiege_lbcache_*` (תוצאות אחרונות להצגה בלי רשת), `skysiege_analytics` (`0` = כבוי), `skysiege_lang` (`he`/`en`; אם לא נבחר: עברית למי שיש לו `skysiege_prog`, אחרת לפי שפת הדפדפן).
+מפתחות: `skysiege_prog`, `skysiege_build2`, `skysiege_fort`, `skysiege_diff`, `skysiege_mode`, `skysiege_tutorial` (`done`/`skipped`; ההדרכה מופיעה רק לשחקן בלי XP ובלי ניצחונות, ורק עד שהמפתח קיים), `skysiege_sound` (`{muted,sfx,music}`, ברירת מחדל: הכול פועל), `skysiege_sync` (`{buildAt,dirty}`, רישום מקומי של הסנכרון), `skysiege_lb` (השורה האחרונה שפורסמה) ו-`skysiege_lbcache_*` (תוצאות אחרונות להצגה בלי רשת), `skysiege_analytics` (`0` = כבוי), `skysiege_1v1` (הבנייה האחרונה ל-1v1), `skysiege_beta` (`1` = תכונות בבנייה גלויות; `?beta=1`/`?beta=0`), `skysiege_lang` (`he`/`en`; אם לא נבחר: עברית למי שיש לו `skysiege_prog`, אחרת לפי שפת הדפדפן).
 **מטבעות:** כל שינוי עובר דרך `earnCoins(n)`/`spendCoins(n)`, שמעדכנים גם את `coinsEarned`/`coinsSpent` (רק עולים; `coins = earned − spent`). `epoch` עולה ב"איפוס התקדמות". `nick` (כינוי בטבלה, ריק = לא בטבלה) ו-`friends` (uid-ים) נשמרים ב-`prog` ומתמזגים בענן (כינוי לא הולך לאיבוד, חברים באיחוד). כך מיזוג "תמיד הגבוה" לא מחזיר כסף על קניות ואיפוס לא נדרס.
 **חובה לשמור תאימות לאחור.** שחקנים אמיתיים כבר משחקים. כל שדה חדש נכנס דרך `freshProg()` ו-`Object.assign` בזמן הטעינה, ואסור לאפס להם התקדמות.
 

@@ -28,6 +28,8 @@ function play(){
 }
 
 export function renderTitle(){
+  // 1v1 is still being built: visible with ?beta=1 (invite links work for everyone)
+  $('ttlFriend').classList.toggle('hidden',!store.get('skysiege_beta'));
   const mode=titleMode();
   document.querySelectorAll('#ttlModes button[data-tm]').forEach(b=>b.classList.toggle('on',b.dataset.tm===mode));
   const hasSave=!!store.get('skysiege_prog'),r=myRank();
