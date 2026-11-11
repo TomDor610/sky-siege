@@ -17,6 +17,7 @@ import {$} from './util.js';
 import {ctx,cv,resize} from './view.js';
 import {duckMusic,setMusicMode,sfx,soundFrame} from './sound.js';
 import {syncResume} from './sync/index.js';
+import {netResult} from './net/battle.js';
 export let mode='title',last=0,tipTimer=0;
 export function show(id){['titleScreen','buildScreen','resultScreen','pauseScreen'].forEach(s=>$(s).classList.toggle('hidden',s!==id));}
 export function setPlayUI(on){['hud','pauseBtn','soundBtn'].forEach(s=>$(s).classList.toggle('hidden',!on));$('touch').classList.toggle('hidden',!(on&&isTouch));$('shootBtn').classList.toggle('hidden',!(build.crossbows>0));}
@@ -32,13 +33,32 @@ export function start(){
   tutorialBegin();
   setMusicMode('battle');duckMusic(false);sfx('launch');
 }
-export function toMenu(){tutorialEnd();setMusicMode('menu');duckMusic(false);mode='menu';setG(null);syncResume();setPlayUI(false);show('buildScreen');refreshBuild();resize();}
-export function toTitle(){tutorialEnd();setMusicMode('menu');duckMusic(false);mode='title';setG(null);syncResume();setPlayUI(false);show('titleScreen');titleShown();resize();}
+const vsOff=()=>document.body.classList.remove('vsResult');
+export function toMenu(){vsOff();tutorialEnd();setMusicMode('menu');duckMusic(false);mode='menu';setG(null);syncResume();setPlayUI(false);show('buildScreen');refreshBuild();resize();}
+export function toTitle(){vsOff();tutorialEnd();setMusicMode('menu');duckMusic(false);mode='title';setG(null);syncResume();setPlayUI(false);show('titleScreen');titleShown();resize();}
 // the 1v1 blind build: the workshop, in 1v1 mode (see ui/vs-ui.js)
-export function toVsBuild(){mode='menu';setG(null);setPlayUI(false);show('buildScreen');refreshBuild();resize();}
-export function pause(){if(mode!=='play')return;mode='pause';show('pauseScreen');duckMusic(true);}
+export function toVsBuild(){vsOff();mode='menu';setG(null);setPlayUI(false);show('buildScreen');refreshBuild();resize();}
+// the 1v1 battle (net/battle.js builds G): countdown, then play. No pause, no tutorial.
+export function startNet(){
+  vsOff();tutorialEnd();resetHud();mode='vscount';show(null);setPlayUI(true);
+  $('pauseBtn').classList.add('hidden');$('shootBtn').classList.toggle('hidden',!(G.me.build.crossbows>0));$('tip').classList.add('hidden');
+  for(const k in input)input[k]=false;
+  resize();hud();setMusicMode('battle');duckMusic(false);
+}
+// the room screen over an empty page (back from a 1v1 result)
+export function toVsRoom(){vsOff();setMusicMode('menu');mode='menu';setG(null);setPlayUI(false);show(null);resize();}
+function netFinish(){
+  const v=netResult();
+  sfx(v.res==='won'?'win':v.res==='lost'?'lose':'launch');setMusicMode('menu');duckMusic(false);
+  mode='result';setPlayUI(false);$('tip').classList.add('hidden');$('vsCount').classList.add('hidden');
+  $('resTitle').textContent=v.title;$('resText').textContent=v.text;$('earn').innerHTML='';$('copyMsg').textContent='';
+  document.body.classList.add('vsResult');show('resultScreen');
+  if(G)G.state='over';
+}
+export function pause(){if(mode!=='play'||(G&&G.net))return;mode='pause';show('pauseScreen');duckMusic(true);}
 export let shareText='';
 export function finish(){
+  if(G.net)return netFinish();
   G.state=G.state==='won'?'wonDone':'lostDone';const won=G.state==='wonDone';sfx(won?'win':'lose');setMusicMode('menu');duckMusic(false);
   tutorialEnd();mode='result';setPlayUI(false);$('tip').classList.add('hidden');
   const foe=G.foe,pct=Math.round(100*(1-Math.max(0,foe.hp)/foe.max));
@@ -90,6 +110,7 @@ export function finish(){
 }
 export function loop(now){
   const dt=Math.min(0.033,(now-last)/1000||0);last=now;const t=now/1000;
+  if(mode==='vscount'&&G&&G.net&&G.net.countdown())mode='play';
   if(mode==='play'){update(dt);tutorialTick(dt);hud();}
   soundFrame(dt,mode==='play');
   if(mode==='title'){if(!$('titleScreen').classList.contains('hidden'))drawTitleScene(t);}

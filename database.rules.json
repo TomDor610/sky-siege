@@ -23,8 +23,8 @@
             ".validate": "newData.isString()"
           },
           "state": {
-            ".write": "auth != null && (root.child('rooms').child($code).child('meta').child('host').val() === auth.uid || root.child('rooms').child($code).child('meta').child('guest').val() === auth.uid) && data.exists() && ((newData.val() === 'build' && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid && data.val() !== 'build' && data.parent().child('guest').exists() && root.child('rooms').child($code).child('players').child(data.parent().child('guest').val()).exists() && newData.parent().child('round').val() === (data.parent().child('round').exists() ? data.parent().child('round').val() + 1 : 1)) || (newData.val() === 'reveal' && data.val() === 'build' && ((root.child('rooms').child($code).child('ready').child(data.parent().child('host').val()).val() === data.parent().child('round').val() && root.child('rooms').child($code).child('ready').child(data.parent().child('guest').val()).val() === data.parent().child('round').val()) || now >= data.parent().child('buildEndsAt').val())) || (newData.val() === 'lobby' && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid))",
-            ".validate": "newData.val() === 'lobby' || newData.val() === 'build' || newData.val() === 'reveal'"
+            ".write": "auth != null && (root.child('rooms').child($code).child('meta').child('host').val() === auth.uid || root.child('rooms').child($code).child('meta').child('guest').val() === auth.uid) && data.exists() && ((newData.val() === 'build' && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid && data.val() !== 'build' && data.parent().child('guest').exists() && root.child('rooms').child($code).child('players').child(data.parent().child('guest').val()).exists() && newData.parent().child('round').val() === (data.parent().child('round').exists() ? data.parent().child('round').val() + 1 : 1)) || (newData.val() === 'reveal' && data.val() === 'build' && ((root.child('rooms').child($code).child('ready').child(data.parent().child('host').val()).val() === data.parent().child('round').val() && root.child('rooms').child($code).child('ready').child(data.parent().child('guest').val()).val() === data.parent().child('round').val()) || now >= data.parent().child('buildEndsAt').val())) || (newData.val() === 'battle' && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid && data.val() === 'reveal' && newData.parent().child('battleAt').exists()) || (newData.val() === 'lobby' && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid))",
+            ".validate": "newData.val() === 'lobby' || newData.val() === 'build' || newData.val() === 'reveal' || newData.val() === 'battle'"
           },
           "round": {
             ".write": "auth != null && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid && newData.parent().child('state').val() === 'build' && data.parent().child('state').val() !== 'build'",
@@ -33,6 +33,14 @@
           "buildEndsAt": {
             ".write": "auth != null && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid && newData.parent().child('state').val() === 'build' && data.parent().child('state').val() !== 'build'",
             ".validate": "newData.isNumber() && newData.val() >= now + 50000 && newData.val() <= now + 70000"
+          },
+          "battleAt": {
+            ".write": "auth != null && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid && newData.parent().child('state').val() === 'battle' && data.parent().child('state').val() === 'reveal'",
+            ".validate": "newData.isNumber() && newData.val() >= now + 2000 && newData.val() <= now + 6000"
+          },
+          "seed": {
+            ".write": "auth != null && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid && newData.parent().child('state').val() === 'build' && data.parent().child('state').val() !== 'build'",
+            ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 2147483647"
           },
           "$other": {
             ".validate": false
@@ -61,7 +69,7 @@
         },
         "loadouts": {
           "$uid": {
-            ".read": "auth != null && (auth.uid === $uid || ((root.child('rooms').child($code).child('meta').child('host').val() === auth.uid || root.child('rooms').child($code).child('meta').child('guest').val() === auth.uid) && root.child('rooms').child($code).child('meta').child('state').val() === 'reveal'))",
+            ".read": "auth != null && (auth.uid === $uid || ((root.child('rooms').child($code).child('meta').child('host').val() === auth.uid || root.child('rooms').child($code).child('meta').child('guest').val() === auth.uid) && (root.child('rooms').child($code).child('meta').child('state').val() === 'reveal' || root.child('rooms').child($code).child('meta').child('state').val() === 'battle')))",
             ".write": "auth != null && (root.child('rooms').child($code).child('meta').child('host').val() === auth.uid || root.child('rooms').child($code).child('meta').child('guest').val() === auth.uid) && auth.uid === $uid && root.child('rooms').child($code).child('meta').child('state').val() === 'build' && now <= root.child('rooms').child($code).child('meta').child('buildEndsAt').val() + 2000",
             ".validate": "newData.hasChildren(['round', 'build', 'fort']) && newData.child('round').val() === root.child('rooms').child($code).child('meta').child('round').val() && newData.child('build/wings').val() * 15 + newData.child('build/props').val() * 20 + newData.child('build/armor').val() * 10 + newData.child('build/bombs').val() * (newData.child('build/bombType').val() === 'greek' ? 8 : 5) + newData.child('build/crossbows').val() * 15 + (newData.child('fort/s/0').val() === 'ballista' ? 25 : (newData.child('fort/s/0').val() === 'archers' ? 20 : (newData.child('fort/s/0').val() === 'mangonel' ? 35 : 0))) + (newData.child('fort/s/1').val() === 'ballista' ? 25 : (newData.child('fort/s/1').val() === 'archers' ? 20 : (newData.child('fort/s/1').val() === 'mangonel' ? 35 : 0))) + (newData.child('fort/s/2').val() === 'ballista' ? 25 : (newData.child('fort/s/2').val() === 'archers' ? 20 : (newData.child('fort/s/2').val() === 'mangonel' ? 35 : 0))) + (newData.child('fort/s/3').val() === 'ballista' ? 25 : (newData.child('fort/s/3').val() === 'archers' ? 20 : (newData.child('fort/s/3').val() === 'mangonel' ? 35 : 0))) + (newData.child('fort/s/4').val() === 'ballista' ? 25 : (newData.child('fort/s/4').val() === 'archers' ? 20 : (newData.child('fort/s/4').val() === 'mangonel' ? 35 : 0))) + newData.child('fort/walls').val() * 15 <= 180",
             "round": {
@@ -127,6 +135,78 @@
             "$other": {
               ".validate": false
             }
+          }
+        },
+        "battle": {
+          ".read": "auth != null && (root.child('rooms').child($code).child('meta').child('host').val() === auth.uid || root.child('rooms').child($code).child('meta').child('guest').val() === auth.uid)",
+          ".write": "auth != null && root.child('rooms').child($code).child('meta').child('host').val() === auth.uid && !newData.exists() && root.child('rooms').child($code).child('meta').child('state').val() === 'reveal'",
+          "plane": {
+            "$uid": {
+              ".write": "auth != null && (root.child('rooms').child($code).child('meta').child('host').val() === auth.uid || root.child('rooms').child($code).child('meta').child('guest').val() === auth.uid) && auth.uid === $uid && root.child('rooms').child($code).child('meta').child('state').val() === 'battle'",
+              ".validate": "newData.hasChildren(['t', 'x', 'y', 'p', 'f', 's', 'hp'])",
+              "$f": {
+                ".validate": "newData.isNumber() && newData.val() > -100000 && newData.val() < 100000000000000"
+              }
+            }
+          },
+          "ev": {
+            "$uid": {
+              "$eid": {
+                ".write": "auth != null && (root.child('rooms').child($code).child('meta').child('host').val() === auth.uid || root.child('rooms').child($code).child('meta').child('guest').val() === auth.uid) && auth.uid === $uid && root.child('rooms').child($code).child('meta').child('state').val() === 'battle' && !data.exists()",
+                ".validate": "newData.hasChildren(['k', 't', 'x', 'y'])",
+                "k": {
+                  ".validate": "newData.isString() && (newData.val() === 'b' || newData.val() === 'a' || newData.val() === 'D' || newData.val() === 'A' || newData.val() === 'P' || newData.val() === 'r' || newData.val() === 'x')"
+                },
+                "$f": {
+                  ".validate": "newData.isNumber() && newData.val() > -100000 && newData.val() < 100000000000000"
+                }
+              }
+            }
+          },
+          "castle": {
+            "$uid": {
+              ".write": "auth != null && (root.child('rooms').child($code).child('meta').child('host').val() === auth.uid || root.child('rooms').child($code).child('meta').child('guest').val() === auth.uid) && auth.uid === $uid && root.child('rooms').child($code).child('meta').child('state').val() === 'battle'",
+              ".validate": "newData.hasChildren(['hp', 'h', 'd', 'f'])",
+              "hp": {
+                ".validate": "newData.isNumber() && newData.val() <= 1000"
+              },
+              "h": {
+                ".validate": "newData.isString() && newData.val().matches(/^[0-9a-f]{11}$/)"
+              },
+              "d": {
+                ".validate": "newData.isString() && newData.val().matches(/^[01]{0,5}$/)"
+              },
+              "a": {
+                ".validate": "newData.isString() && newData.val().length <= 60"
+              },
+              "f": {
+                ".validate": "newData.isNumber()"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          },
+          "fall": {
+            "$uid": {
+              ".write": "auth != null && (root.child('rooms').child($code).child('meta').child('host').val() === auth.uid || root.child('rooms').child($code).child('meta').child('guest').val() === auth.uid) && auth.uid === $uid && root.child('rooms').child($code).child('meta').child('state').val() === 'battle' && !data.exists()",
+              ".validate": "newData.val() === now"
+            }
+          },
+          "final": {
+            "$uid": {
+              ".write": "auth != null && (root.child('rooms').child($code).child('meta').child('host').val() === auth.uid || root.child('rooms').child($code).child('meta').child('guest').val() === auth.uid) && auth.uid === $uid && root.child('rooms').child($code).child('meta').child('state').val() === 'battle' && !data.exists() && now >= root.child('rooms').child($code).child('meta').child('battleAt').val() + 149000",
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100"
+            }
+          },
+          "rematch": {
+            "$uid": {
+              ".write": "auth != null && (root.child('rooms').child($code).child('meta').child('host').val() === auth.uid || root.child('rooms').child($code).child('meta').child('guest').val() === auth.uid) && auth.uid === $uid && root.child('rooms').child($code).child('meta').child('state').val() === 'battle'",
+              ".validate": "newData.isNumber() && newData.val() === root.child('rooms').child($code).child('meta').child('round').val()"
+            }
+          },
+          "$other": {
+            ".validate": false
           }
         },
         "$other": {

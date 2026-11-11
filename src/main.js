@@ -1,6 +1,6 @@
 // Entry point. Init order mirrors the original single-file script.
 import {initPaper} from './draw/paper.js';
-import {initWorld} from './draw/world.js';
+import {clouds,initWorld,trees} from './draw/world.js';
 import {initFlow,loop,start,toMenu,toTitle} from './flow.js';
 import {initAnalytics} from './analytics.js';
 import {initTitle} from './ui/title.js';
@@ -8,6 +8,7 @@ import {handleRoomLink,initRoomUI} from './ui/room-ui.js';
 import {initVsUI} from './ui/vs-ui.js';
 import {vsMode} from './progress.js';
 import {roomInfo} from './net/room.js';
+import {netInfo} from './net/battle.js';
 import {update} from './game.js';
 import {initInput,input,pressed} from './input.js';
 import {stats} from './physics.js';
@@ -56,4 +57,4 @@ afterPaint(()=>{
   initSync({canApply:()=>mode!=='play'&&mode!=='pause'&&!vsMode,onApplied:()=>{if(mode==='menu')refreshBuild();}});
   initAnalytics();
 });
-window.__sky={get G(){return G},get prog(){return prog},start,input,stats,build:()=>build,fort:()=>fort,setMode:m=>{setGameMode(m);refreshBuild();},press:k=>{if(k==='bomb')pressed.bomb=true;if(k==='flip')pressed.flip=true;},step:(n,dt)=>{for(let i=0;i<n;i++){if(G.state==='play'||G.state==='won'||G.state==='lost'){update(dt||1/60);tutorialTick(dt||1/60);}}},refresh:refreshBuild,tutorial:tutorialInfo,sound:soundInfo,lang:getLang,cloud:syncInfo,room:roomInfo};
+window.__sky={get G(){return G},get prog(){return prog},start,input,stats,build:()=>build,fort:()=>fort,setMode:m=>{setGameMode(m);refreshBuild();},press:k=>{if(k==='bomb')pressed.bomb=true;if(k==='flip')pressed.flip=true;},step:(n,dt)=>{for(let i=0;i<n;i++){if(G.state==='play'||G.state==='won'||G.state==='lost'){update(dt||1/60);tutorialTick(dt||1/60);}}},refresh:refreshBuild,tutorial:tutorialInfo,sound:soundInfo,lang:getLang,cloud:syncInfo,room:roomInfo,net:netInfo,deco:()=>JSON.stringify([clouds.slice(0,4),trees.slice(0,4)])};

@@ -37,12 +37,12 @@ export function newGame(){
   floater(me.x+60,me.y-30,duel?t('fl.duelStart'):t('fl.siegeStart',{lvl:G.foe.lvl}));
 }
 export function update(dt){
-  G.t+=dt;
+  if(G.net)G.net.pre(dt);else G.t+=dt;
   const me=G.me;
   me.inp.up=input.up;me.inp.down=input.down;me.inp.shoot=input.shoot;me.inp.bomb=pressed.bomb;me.inp.flip=pressed.flip;
   pressed.bomb=false;pressed.flip=false;
   if(G.bot)botThink(G.bot);
-  for(const p of G.planes)updatePlane(p,dt);
+  for(const p of G.planes)if(!p.remote)updatePlane(p,dt);   // 1v1: the friend's plane comes from the network
   for(const c of G.castles)updateDefenses(c,dt);
   for(const bo of G.bolts){
     bo.vy+=(bo.kind==='pot'?POT_G:BOLT_G)*dt;bo.x+=bo.vx*dt;bo.y+=bo.vy*dt;bo.life-=dt;
@@ -59,8 +59,8 @@ export function update(dt){
   for(const ar of G.arrows){
     ar.vy+=120*dt;ar.x+=ar.vx*dt;ar.y+=ar.vy*dt;ar.life-=dt;
     for(const c of G.castles){if(c.side===ar.owner)continue;
-      for(const b of c.defs)if(ar.life>0&&b.alive&&Math.hypot(b.x-ar.x,b.y-ar.y)<30){ar.life=0;b.hp--;spark(ar.x,ar.y,'splinter',5);if(b.hp<=0)killDef(c,b);}
-      if(ar.life>0&&c.hp>0&&hitsCastle(c,ar.x,ar.y)){ar.life=0;sfx('thunk',{x:ar.x});c.hp-=3*ar.mul;spark(ar.x,ar.y,'spark',6);}}
+      for(const b of c.defs)if(ar.life>0&&b.alive&&Math.hypot(b.x-ar.x,b.y-ar.y)<30){ar.life=0;spark(ar.x,ar.y,'splinter',5);if(!c.remote){b.hp--;if(b.hp<=0)killDef(c,b);}}
+      if(ar.life>0&&c.hp>0&&hitsCastle(c,ar.x,ar.y)){ar.life=0;sfx('thunk',{x:ar.x});if(!c.remote)c.hp-=3*ar.mul;spark(ar.x,ar.y,'spark',6);}}
     const pl=foeOf(ar.owner);
     if(ar.life>0&&pl&&Math.hypot(pl.x-ar.x,pl.y-ar.y)<26){ar.life=0;hitPlane(pl,8*ar.mul,'reason.crossbow');spark(ar.x,ar.y,'spark',8);}
     if(ar.y>WORLD.ground)ar.life=0;
@@ -72,14 +72,15 @@ export function update(dt){
     let hit=false;
     for(const c of G.castles){if(c.side===bm.owner||c.hp<=0)continue;if(hitsCastle(c,bm.x,bm.y)){bm.dead=true;hit=true;explode(bm.owner,bm.x,bm.y,bm.bt,true);damageCastle(c,bm.x,bm.y,bm.bt.dmg*bm.mul);break;}}
     if(!hit&&bm.y>=WORLD.ground-4){bm.dead=true;explode(bm.owner,bm.x,WORLD.ground-4,bm.bt,false);
-      for(const c of G.castles)if(c.side!==bm.owner&&c.hp>0&&bm.x>c.x0-30&&bm.x<c.x0+CW+30){c.hp-=8;floater(bm.x,bm.y-40,'-8');}}
+      for(const c of G.castles)if(c.side!==bm.owner&&c.hp>0&&bm.x>c.x0-30&&bm.x<c.x0+CW+30){if(!c.remote)c.hp-=8;floater(bm.x,bm.y-40,'-8');}}
     else if(bm.x<0||bm.x>WORLD.width)bm.dead=true;
   }
   G.bombs=G.bombs.filter(b=>!b.dead);
-  for(const bu of G.burns){bu.t-=dt;if(Math.random()<0.7)spark(bu.x,bu.y,'flame');if(bu.c&&bu.c.hp>0&&G.state==='play')bu.c.hp-=bu.rate*dt;}
+  for(const bu of G.burns){bu.t-=dt;if(Math.random()<0.7)spark(bu.x,bu.y,'flame');if(bu.c&&!bu.c.remote&&bu.c.hp>0&&G.state==='play')bu.c.hp-=bu.rate*dt;}
   G.burns=G.burns.filter(b=>b.t>0);
   // outcome
-  if(G.state==='play'){
+  if(G.net)G.net.post(dt);   // 1v1: send my state, decide the end (net/battle.js)
+  else if(G.state==='play'){
     const foeDown=G.foe.hp<=0,mineDown=G.mine&&G.mine.hp<=0;
     if(foeDown||mineDown){
       G.state=foeDown&&!mineDown?'won':'lost';G.winTime=G.t;G.end=G.t+2.6;

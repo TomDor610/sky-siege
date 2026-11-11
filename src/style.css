@@ -202,3 +202,10 @@ body.vsReady #tabMachine .grid{pointer-events:none;opacity:.55}
 .roomStartBtn{background:var(--red);color:var(--parch);font-weight:900}
 #roomWaitHost:empty,#roomLobbyMsg:empty,#roomInviteMsg:empty{display:none}
 @media (orientation:landscape) and (max-height:500px){.roomCard h1{font-size:22px;margin-bottom:2px}.roomCode{font-size:34px}.roomCard .row{margin-top:6px}.roomPlayer{padding:2px 0;font-size:15px}}
+
+/* 1v1 battle: countdown and the result screen */
+#vsCount{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);z-index:7;pointer-events:none;font-size:96px;font-weight:900;color:var(--red);text-shadow:0 0 12px var(--parch),0 0 4px var(--parch)}
+#vsResBtns,#vsResMsg{display:none}
+body.vsResult #vsResBtns{display:flex}
+body.vsResult #vsResMsg{display:block;margin-top:6px;min-height:18px}
+body.vsResult #againBtn,body.vsResult #rebuildBtn,body.vsResult #copyRow,body.vsResult #copyMsg,body.vsResult #earn{display:none}

@@ -1,17 +1,25 @@
-// 1v1 blind build (stage 2): the workshop in 1v1 mode with a shared 60-second timer and a
-// Ready button, then the reveal of both loadouts. Follows the room state from the server:
-//   lobby -> build (host starts) -> reveal (both ready, or time is up) -> lobby (host).
-// A player leaving during the build or the reveal cancels the match.
+// 1v1 blind build (stage 2) and battle (stage 3). The workshop in 1v1 mode with a shared
+// 60-second timer and a Ready button, the reveal of both loadouts, then the battle
+// (net/battle.js). Follows the room state from the server:
+//   lobby -> build (host starts) -> reveal (both ready, or time is up) -> battle (host, 4 s later)
+//   -> build again ("another battle": both press it, the host starts it).
+// A player leaving during the build or the reveal cancels the match; during the battle it ends it.
 import {t} from '../i18n/index.js';
 import {decodeLoadout,encodeLoadout} from '../net/loadout.js';
-import {backToLobby,bothHere,onRoomChange,readLoadouts,reveal,roomInfo,saveLoadout,serverNow,setReady} from '../net/room.js';
+import {abortNet,beginNet,netInfo,onNetChange,sendRematch,stopNet} from '../net/battle.js';
+import {backToLobby,bothHere,onRoomChange,opponentOf,readLoadouts,reveal,roomInfo,saveLoadout,serverNow,setReady,startBattle,startBuild} from '../net/room.js';
 import {onVsSaved,sanitize,setVsMode,vsMode} from '../progress.js';
 import {build,fort,setBuild,setFort} from '../state.js';
 import {$,store} from '../util.js';
-import {toVsBuild} from '../flow.js';
+import {finish,mode,startNet,toVsBuild,toVsRoom} from '../flow.js';
+import {G} from '../state.js';
+import {nameOf} from './room-ui.js';
+
+export const REVEAL_MS=4000;   // how long both loadouts are shown before the countdown
 
 let saved=null;        // the player's own build/fort, put back after the 1v1 build
 let round=0,ready=false,timer=null,pushTimer=null,flushed=false,revealed=null,cancelled=false,lastTry=0;
+let goTimer=null,battleRound=0,rematchAsked=false,rematchSent=0;
 const listeners=[];
 export const onVsChange=f=>listeners.push(f);
 const notify=()=>listeners.forEach(f=>f());
@@ -84,22 +92,68 @@ function showRoom(){
   $('roomScreen').classList.remove('hidden');
 }
 
+// ---- battle
+const inBattle=()=>G&&G.net&&(mode==='vscount'||mode==='play');
+const onResult=()=>mode==='result'&&document.body.classList.contains('vsResult');
+function endBattleEarly(){if(inBattle()&&abortNet())finish();}
+
+// both loadouts of a round, read once and shared by the reveal and the battle
+let loading=null;
+function loadoutsFor(rd){
+  if(!loading||loading.round!==rd){
+    const p=readLoadouts().then(l=>{if(!l||!l.mine||!l.theirs)throw new Error('missing');return {round:rd,mine:decodeLoadout(l.mine),theirs:decodeLoadout(l.theirs)};});
+    loading={round:rd,p};p.catch(()=>{if(loading&&loading.p===p)loading=null;});   // a failed read is tried again
+  }
+  return loading.p;
+}
+
+async function enterBattle(r){
+  battleRound=r.meta.round;rematchAsked=false;rematchSent=0;clearTimeout(goTimer);
+  let rev=revealed;
+  if(!rev||rev.round!==r.meta.round||!rev.mine){
+    try{rev=await loadoutsFor(r.meta.round);revealed=rev;}
+    catch(e){battleRound=0;setTimeout(onRoom,1000);return;}            // slow line: try again
+  }
+  const now=roomInfo().room;if(!now||now.meta.state!=='battle'||now.meta.round!==battleRound)return;
+  if(!beginNet({mine:rev.mine,theirs:rev.theirs,battleAt:r.meta.battleAt,seed:r.meta.seed,round:r.meta.round,oppName:nameOf(r,opponentOf(r))}))return;
+  $('roomScreen').classList.add('hidden');
+  startNet();renderResult();
+}
+
+function renderResult(){
+  const {room:r}=roomInfo(),n=netInfo(),here=!!r&&bothHere(r);
+  const b=$('vsRematch');
+  b.disabled=!here||!n.active||n.result==='left'||rematchAsked;
+  b.textContent=rematchAsked&&here?t('vs.rematchWait'):t('vs.rematch');
+  $('vsResMsg').textContent=!here||n.result==='left'?t('vs.oppLeft'):n.rematchTheirs?t('vs.oppRematch'):'';
+  // both asked for another battle: the host starts the next blind build
+  if(n.active&&n.rematchMine&&n.rematchTheirs&&r&&r.role==='host'&&rematchSent!==n.round){rematchSent=n.round;startBuild().catch(()=>{});}
+}
+
 async function onRoom(){
   const {room:r}=roomInfo();
   if(!r){
     if(vsMode){exitBuild();showRoom();}
+    clearTimeout(goTimer);endBattleEarly();if(onResult())renderResult();else stopNet();
     revealed=null;round=0;notify();return;
   }
   if(!r.meta)return;
   const st=r.meta.state;
   // the opponent left in the middle of a match: cancel it (the host puts the room back)
+  if(st==='battle'&&!bothHere(r)){
+    endBattleEarly();
+    if(r.role==='host')backToLobby();
+    renderResult();return;
+  }
   if((st==='build'||st==='reveal')&&!bothHere(r)){
+    clearTimeout(goTimer);
     if(vsMode){exitBuild();showRoom();}
     revealed=null;cancelled=true;
     if(r.role==='host')backToLobby();
     notify();return;
   }
   if(st==='build'){
+    clearTimeout(goTimer);stopNet();
     if(!vsMode||r.meta.round!==round)enterBuild(r);
     else renderBar();
     return;
@@ -107,17 +161,35 @@ async function onRoom(){
   if(vsMode)exitBuild();
   if(st==='reveal'&&(!revealed||revealed.round!==r.meta.round)){
     revealed={round:r.meta.round,loading:true};showRoom();notify();
-    try{
-      const l=await readLoadouts();
-      if(l&&l.mine&&l.theirs)revealed={round:r.meta.round,mine:decodeLoadout(l.mine),theirs:decodeLoadout(l.theirs)};
-    }catch(e){revealed={round:r.meta.round,failed:true};}
+    try{revealed=await loadoutsFor(r.meta.round);}
+    catch(e){revealed={round:r.meta.round,failed:true};}
+    // the host starts the battle after both have had a look
+    // (even if this read failed: the battle reads the loadouts again, with retries)
+    if(r.role==='host'){clearTimeout(goTimer);goTimer=setTimeout(startBattle,REVEAL_MS);}
     notify();return;
   }
-  if(st==='lobby'&&revealed){revealed=null;showRoom();notify();}
+  if(st==='battle'){
+    if(battleRound!==r.meta.round)await enterBattle(r);
+    else if(onResult())renderResult();
+    return;
+  }
+  if(st==='lobby'){
+    clearTimeout(goTimer);
+    if(onResult()){renderResult();return;}
+    if(revealed){revealed=null;showRoom();notify();}
+  }
 }
 
 export function initVsUI(){
   onRoomChange(onRoom);
+  onNetChange(()=>{if(onResult())renderResult();});
+  $('vsRematch').onclick=async()=>{
+    if(rematchAsked)return;rematchAsked=true;renderResult();
+    try{await sendRematch();}catch(e){rematchAsked=false;}
+    renderResult();
+  };
+  // back to the room (the room stays; the host can start a new build from the lobby)
+  $('vsExit').onclick=()=>{stopNet();toVsRoom();revealed=null;showRoom();notify();};
   onVsSaved(()=>{if(!ready)push(false);});
   $('vsReady').onclick=async()=>{
     const want=!ready;

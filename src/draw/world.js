@@ -97,3 +97,10 @@ for(let i=0;i<16;i++)notes.push({x:i*170+rnd(-30,30),y:rnd(70,380),type:pick(['t
 for(let i=0;i<22;i++)clouds.push({x:rnd(-500,6000),y:rnd(120,650),s:rnd(0.6,1.4)});
 for(let i=0;i<70;i++)trees.push({x:rnd(700,3300),s:rnd(.7,1.3)});
 }
+// 1v1: both players get the same notes, clouds and trees from the room's seed. A local
+// PRNG stands in for Math.random while they are rebuilt, so the game's own stream is untouched.
+export function reseedWorld(seed){
+  let a=seed>>>0;const r=Math.random;
+  Math.random=()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
+  try{notes.length=0;clouds.length=0;trees.length=0;initWorld();}finally{Math.random=r;}
+}

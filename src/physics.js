@@ -35,7 +35,10 @@ export function spawnPlane(pl){
 }
 export const planeDir=pl=>({x:pl.facing*Math.cos(pl.p),y:-Math.sin(pl.p)});
 export const foeOf=side=>G.planes.find(p=>p.side!==side&&!p.dead)||null;
-export function hitPlane(pl,dmg,reason){if(pl.dead)return;pl.hp-=dmg;pl.hitFlash=0.25;if(pl===G.me)G.shake=Math.max(G.shake,6);spark(pl.x,pl.y,'splinter',5);sfx('hit',{x:pl.x,mine:pl===G.me});if(pl.hp<=0){pl.hp=0;killPlane(pl,reason);}}
+export function hitPlane(pl,dmg,reason){if(pl.dead)return;
+  if(pl.remote){pl.hitFlash=0.25;spark(pl.x,pl.y,'splinter',5);return;}   // 1v1: the friend decides hits on their plane
+  if(G.net&&pl===G.me)G.net.hit();
+  pl.hp-=dmg;pl.hitFlash=0.25;if(pl===G.me)G.shake=Math.max(G.shake,6);spark(pl.x,pl.y,'splinter',5);sfx('hit',{x:pl.x,mine:pl===G.me});if(pl.hp<=0){pl.hp=0;killPlane(pl,reason);}}
 export function killPlane(pl,reason){
   if(pl.dead)return;pl.dead=true;const d=planeDir(pl);pl.wx=d.x*pl.s*0.6;pl.vz=d.y*pl.s*0.6;pl.reason=reason;
   spark(pl.x,pl.y,'splinter',16);spark(pl.x,pl.y,'fire',12);sfx('planeDown',{x:pl.x,mine:pl===G.me});if(pl===G.me)G.shake=12;
@@ -45,7 +48,7 @@ export function explode(owner,x,y,bt,big){
   spark(x,y,'fire',big?26:14);sfx('boom',{x,big,greek:!!bt.burn});for(let i=0;i<(big?8:4);i++)spark(x,y,'smoke');
   if(Math.abs(x-(G.cam.x+viewW/2))<viewW)G.shake=Math.max(G.shake,big?10:5);
   for(const c of G.castles){if(c.side===owner)continue;for(const b of c.defs)if(b.alive&&Math.hypot(b.x-x,b.y-y)<bt.radius)killDef(c,b);}
-  if(bt.burn){const c=G.castles.find(c=>c.side!==owner&&x>c.x0-30&&x<c.x0+CW+30);if(c)G.burns.push({c,x,y,t:3,rate:bt.burn});else G.burns.push({c:null,x,y,t:3,rate:0});}
+  if(bt.burn){const c=G.castles.find(c=>c.side!==owner&&x>c.x0-30&&x<c.x0+CW+30);if(c&&!c.remote)G.burns.push({c,x,y,t:3,rate:bt.burn});else G.burns.push({c:null,x,y,t:3,rate:0});}
 }
 export function rearmZone(pl){
   if(G.duel){const c=G.castles.find(c=>c.side===pl.side),top=castleTop(c);return {x0:c.x0-30,x1:c.x0+CW+30,y0:top-200,y1:top-15};}
@@ -55,7 +58,7 @@ export function updatePlane(pl,dt){
   const st=pl.st,inp=pl.inp;
   if(pl.dead){
     if(!pl.crashed){pl.vz+=GRAV*dt;pl.x+=pl.wx*dt;pl.y+=pl.vz*dt;pl.p-=1.5*dt;if(Math.random()<0.6)spark(pl.x,pl.y,'smoke');
-      if(pl.y>WORLD.ground-8){pl.y=WORLD.ground-8;pl.crashed=true;explode(pl.side,pl.x,pl.y,BOMBTYPE.stone,true);
+      if(pl.y>WORLD.ground-8){pl.y=WORLD.ground-8;pl.crashed=true;explode(pl.side,pl.x,pl.y,BOMBTYPE.stone,true);if(G.net)G.net.emit({k:'x',x:pl.x,y:pl.y});
         if(G.duel)pl.respawnT=4;else if(pl===G.me&&G.state==='play'){G.state='lost';G.end=G.t+1.6;}}}
     else if(G.duel&&G.state==='play'){pl.respawnT-=dt;if(pl.respawnT<=0){spawnPlane(pl);sfx('launch',{x:pl.x,mine:!pl.isBot});floater(pl.x,pl.y-30,pl.isBot?t('fl.botRespawn'):t('fl.respawn'));}}
     return;
@@ -76,16 +79,18 @@ export function updatePlane(pl,dt){
   pl.x=clamp(pl.x,10,WORLD.width-10);
   if(pl.hp<st.hp*0.5&&Math.random()<0.35)spark(pl.x-dir.x*30,pl.y-dir.y*30,'smoke');
   pl.bombCD-=dt;
-  if(inp.bomb&&pl.bombs>0&&pl.bombCD<=0){pl.bombs--;pl.bombCD=0.22;sfx('drop',{x:pl.x,mine:pl===G.me});G.bombs.push({owner:pl.side,bt:pl.bt,mul:st.dmgMul,x:pl.x,y:pl.y+12,vx:dir.x*pl.s*0.9,vy:dir.y*pl.s*0.9+pl.vz+20});}
+  if(inp.bomb&&pl.bombs>0&&pl.bombCD<=0){pl.bombs--;pl.bombCD=0.22;sfx('drop',{x:pl.x,mine:pl===G.me});const bm={owner:pl.side,bt:pl.bt,mul:st.dmgMul,x:pl.x,y:pl.y+12,vx:dir.x*pl.s*0.9,vy:dir.y*pl.s*0.9+pl.vz+20};G.bombs.push(bm);
+    if(G.net)G.net.emit({k:'b',x:bm.x,y:bm.y,vx:bm.vx,vy:bm.vy});}
   else if(inp.bomb&&pl.bombs===0&&pl===G.me&&pl.bombCD<=0){pl.bombCD=0.6;sfx('empty');floater(pl.x,pl.y-30,G.duel?t('fl.noBombsDuel'):t('fl.noBombs'));}
   pl.shootCD-=dt;
   if(inp.shoot&&pl.build.crossbows>0&&pl.shootCD<=0){pl.shootCD=0.5/pl.build.crossbows;const v=pl.s+650;
-    sfx('crossbow',{x:pl.x,mine:pl===G.me});G.arrows.push({owner:pl.side,mul:st.dmgMul,x:pl.x+dir.x*45,y:pl.y+dir.y*45,vx:dir.x*v,vy:dir.y*v+pl.vz,life:1.4});}
+    sfx('crossbow',{x:pl.x,mine:pl===G.me});const ar={owner:pl.side,mul:st.dmgMul,x:pl.x+dir.x*45,y:pl.y+dir.y*45,vx:dir.x*v,vy:dir.y*v+pl.vz,life:1.4};G.arrows.push(ar);
+    if(G.net)G.net.emit({k:'a',x:ar.x,y:ar.y,vx:ar.vx,vy:ar.vy});}
   const z=rearmZone(pl);
   if(pl.x>z.x0&&pl.x<z.x1&&pl.y>z.y0&&pl.y<z.y1&&pl.bombs<st.bombsMax){pl.bombs=st.bombsMax;sfx('rearm',{x:pl.x,mine:!pl.isBot});floater(pl.x,pl.y-35,pl.isBot?t('fl.botRearm'):t('fl.rearm'),pl.isBot?'#a3341f':'#4f6b2c');}
   if(G.state!=='play'&&pl.y>WORLD.ground-140)pl.p=Math.max(pl.p,0.3);
   if(pl.y>=WORLD.ground-12)killPlane(pl,'reason.ground');
   else if(!G.duel&&pl.x>HOME.x0&&pl.x<HOME.x1&&pl.y>HOME.top)killPlane(pl,'reason.home');
-  else for(const c of G.castles){if(c.hp>0&&hitsCastle(c,pl.x,pl.y)){killPlane(pl,'reason.castle');if(c.side!==pl.side){damageCastle(c,pl.x,pl.y,20);}explode(pl.side,pl.x,pl.y,BOMBTYPE.stone,true);break;}}
+  else for(const c of G.castles){if(c.hp>0&&hitsCastle(c,pl.x,pl.y)){killPlane(pl,'reason.castle');if(c.side!==pl.side){damageCastle(c,pl.x,pl.y,20);if(G.net)G.net.emit({k:'r',x:pl.x,y:pl.y});}explode(pl.side,pl.x,pl.y,BOMBTYPE.stone,true);break;}}
   if(pl.hitFlash>0)pl.hitFlash-=dt;
 }

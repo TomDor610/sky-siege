@@ -108,7 +108,7 @@ export const opponentOf=r=>(r.role==='host'?r.meta.guest:r.meta.host);
 export const bothHere=r=>!!(r&&r.meta&&r.meta.guest&&r.players[r.meta.guest]&&r.players[r.meta.host]);
 export async function startBuild(){
   const r=room;if(!r||r.role!=='host'||!bothHere(r))return;
-  await timed(net.startBuild(r.code,(r.meta.round||0)+1,Math.round(serverNow()+BUILD_MS)));
+  await timed(net.startBuild(r.code,(r.meta.round||0)+1,Math.round(serverNow()+BUILD_MS),Math.floor(Math.random()*2147483647)));
 }
 export async function saveLoadout(l){const r=room;if(r)await timed(net.saveLoadout(r.code,r.uid,{round:r.meta.round,...l}));}
 export async function setReady(on){const r=room;if(r)await timed(net.setReady(r.code,r.uid,on?r.meta.round:0));}
@@ -120,6 +120,20 @@ export async function readLoadouts(){
   const [mine,theirs]=await Promise.all([timed(net.readLoadout(r.code,r.uid)),timed(net.readLoadout(r.code,opponentOf(r)))]);
   return {mine,theirs};
 }
+
+// ---- battle (stage 3): the host moves from the reveal to the battle; 3 s countdown
+export const COUNTDOWN_MS=3000;
+// The start time is taken after the old battle is cleared (the rules want it 2-6 s ahead of the
+// server's clock), and a refused or lost write is tried again.
+export async function startBattle(){
+  for(let i=0;i<4;i++){
+    const r=room;if(!r||r.role!=='host'||r.meta.state!=='reveal')return;
+    try{await timed(net.clearBattle(r.code));await timed(net.startBattle(r.code,Math.round(serverNow()+COUNTDOWN_MS)));return;}
+    catch(e){await new Promise(f=>setTimeout(f,500));}
+  }
+}
+// low-level access for net/battle.js (the room and both seats are known)
+export const battleNet=()=>{const r=room;return r&&{net,code:r.code,uid:r.uid,opp:opponentOf(r),round:r.meta.round};};
 
 export function roomLink(code){
   const u=new URL(location.href);u.search='';u.hash='';u.searchParams.set('room',code);

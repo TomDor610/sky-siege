@@ -91,16 +91,18 @@ test('time is up: the last build of a player who never pressed Ready is used', a
   await expect(host.page.locator('#vsTheirs')).toContainText('ספינת אוויר');
 });
 
-test('back to the room, a second round starts from the last 1v1 build; your own build is untouched', async ({ browser }, info) => {
+test('after the battle, back in the room a second round starts from the last 1v1 build; your own build is untouched', async ({ browser }, info) => {
   const { host, guest } = await pair(browser, info);
   const ownBefore = await host.page.evaluate(() => localStorage.getItem('skysiege_build2'));
   await pickStyle(host, 'גליון');
   await ready(host); await ready(guest);
   await expect(host.page.locator('#roomReveal')).toBeVisible(WAIT);
-  await expect(guest.page.locator('#roomBackLobby')).toBeHidden();
-  await expect(guest.page.locator('#roomRevealWait')).toHaveText('ממתינים שהמארח יחזיר לחדר…');
-  await host.page.click('#roomBackLobby');
-  for (const p of [host, guest]) await expect(p.page.locator('#roomLobby')).toBeVisible(WAIT);
+  await expect(guest.page.locator('#vsStarting')).toHaveText('הקרב מתחיל עוד רגע…');
+  await host.page.waitForFunction(() => window.__sky.net().phase === 'play', null, WAIT);
+  await guest.page.evaluate(() => { window.__sky.G.mine.hp = 0; });
+  await expect(host.page.locator('#vsExit')).toBeVisible(WAIT);
+  await host.page.click('#vsExit');
+  await expect(host.page.locator('#roomLobby')).toBeVisible(WAIT);
   expect(await host.page.evaluate(() => localStorage.getItem('skysiege_build2'))).toBe(ownBefore);
   expect(await host.page.evaluate(() => window.__sky.build().style)).toBe('classic');   // the player's own build is back
   await host.page.click('#roomStart');
@@ -144,9 +146,9 @@ for (const [lang, locale] of [['he', 'he-IL'], ['en', 'en-US']]) for (const [pho
     await expect(host.page.locator('#roomReveal')).toBeVisible(WAIT);
     await host.page.waitForTimeout(300);
     await shot(host, 'reveal');
-    // the host's button must be reachable without scrolling
-    const btn = await host.page.locator('#roomBackLobby').boundingBox();
-    expect(btn.y + btn.height).toBeLessThanOrEqual(viewport.height);
+    // the "starting" line must be visible without scrolling
+    const line = await host.page.locator('#vsStarting').boundingBox();
+    expect(line.y + line.height).toBeLessThanOrEqual(viewport.height);
     if (lang === 'en') expect(/[֐-׿]/.test(await host.page.locator('#roomScreen').innerText())).toBe(false);
   });
 }

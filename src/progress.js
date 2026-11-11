@@ -43,7 +43,7 @@ export function spent(b){let s=0;for(const k in PARTS)s+=(b[k]||0)*partCost(k,b)
 // player's own build ('skysiege_1v1'), never synced to the cloud.
 export let vsMode=false;
 export function setVsMode(on){vsMode=on;}
-const ZERO_UPG=Object.freeze({frame:0,wings:0,props:0,armor:0,weapons:0,workshop:0,stone:0,ballista:0,archers:0,mangonel:0});
+export const ZERO_UPG=Object.freeze({frame:0,wings:0,props:0,armor:0,weapons:0,workshop:0,stone:0,ballista:0,archers:0,mangonel:0});
 export const owns=style=>vsMode||!!prog.styles[style];
 export const unlocked=k=>vsMode||!!prog.unl[k];
 export const upgNow=()=>(vsMode?ZERO_UPG:prog.upg);

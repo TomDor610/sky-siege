@@ -18,7 +18,13 @@ export async function joinPlayer(browser, info, { locale = 'he-IL', viewport = {
   page.on('pageerror', e => errors.push('pageerror: ' + (e.stack || e.message)));
   page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.location().url || '') && !IGNORE.test(m.text()) && !/ERR_|WebSocket connection|WebSocket is already/.test(m.text())) errors.push('console.error: ' + m.text()); });
   const sockets = [];
-  page.on('websocket', ws => { if (ws.url().includes(':9000')) sockets.push(ws); });
+  const bytes = { in: 0, out: 0 };   // realtime database traffic (WebSocket payloads)
+  page.on('websocket', ws => {
+    if (!ws.url().includes(':9000')) return;
+    sockets.push(ws);
+    ws.on('framereceived', f => { bytes.in += Buffer.byteLength(f.payload); });
+    ws.on('framesent', f => { bytes.out += Buffer.byteLength(f.payload); });
+  });
   await ctx.addInitScript(([e, s]) => {
     window.__skyEmulators = e;
     localStorage.setItem('skysiege_beta', '1');
@@ -30,7 +36,7 @@ export async function joinPlayer(browser, info, { locale = 'he-IL', viewport = {
   const net = { blocked: false, open: [] };
   if (lag) await page.routeWebSocket(/:9000\/\.ws/, ws => proxy(ws, lag, net));
   const player = {
-    ctx, page, errors, sockets, net,
+    ctx, page, errors, sockets, net, bytes,
     async open(path = '/') { await page.goto(path); await page.waitForFunction(() => !!window.__sky); return player; },
     code: () => page.locator('#roomCode').textContent(),
     close: () => ctx.close(),

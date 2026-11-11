@@ -15,6 +15,9 @@ export default defineConfig({
   testDir: 'tests',
   timeout: 120_000,
   fullyParallel: true,
+  // the 1v1 tests run two real-time browsers each (real clocks, real network timing):
+  // too many at once on one machine starves them, so the emulated run is capped
+  ...(emulated ? { workers: 4 } : {}),
   reporter: [['list']],
   // Hebrew by default (the language is picked from the browser for new players);
   // English tests opt in with test.use({ locale: 'en-US' }).

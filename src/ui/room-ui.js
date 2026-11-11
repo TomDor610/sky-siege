@@ -5,7 +5,7 @@ import {drawMachine} from '../draw/machine.js';
 import {toMenu,toTitle} from '../flow.js';
 import {onLangChange,t} from '../i18n/index.js';
 import {cleanCode} from '../net/code.js';
-import {backToLobby,bothHere,clearEnded,createRoom,joinRoom,leaveRoom,onRoomChange,roomInfo,roomLink,startBuild} from '../net/room.js';
+import {bothHere,clearEnded,createRoom,joinRoom,leaveRoom,onRoomChange,roomInfo,roomLink,startBuild} from '../net/room.js';
 import {$} from '../util.js';
 import {drawFortPic} from './build.js';
 import {clearCancelled,onVsChange,vsInfo} from './vs-ui.js';
@@ -23,7 +23,7 @@ function close(){
   if(from==='titleScreen')toTitle();else toMenu();
 }
 
-const nameOf=(r,uid)=>(r.players[uid]&&r.players[uid].name)||t('room.guestName');
+export const nameOf=(r,uid)=>(r.players[uid]&&r.players[uid].name)||t('room.guestName');
 
 function playerRow(uid,r){
   const you=uid===r.uid,row=document.createElement('div');row.className='roomPlayer';
@@ -66,8 +66,6 @@ function renderReveal(r,rev){
     fillColumn($('vsMine'),nameOf(r,r.uid)+' '+t('room.you'),rev.mine);
     fillColumn($('vsTheirs'),nameOf(r,r.role==='host'?r.meta.guest:r.meta.host),rev.theirs);
   }
-  $('roomBackLobby').classList.toggle('hidden',r.role!=='host');
-  $('roomRevealWait').textContent=r.role==='host'?'':t('vs.waitBack');
 }
 
 function render(){
@@ -137,7 +135,6 @@ export function initRoomUI(){
   $('roomCodeIn').onkeydown=e=>{if(e.key==='Enter')join();};
   $('roomInvite').onclick=invite;
   $('roomStart').onclick=()=>{clearCancelled();run(startBuild);};
-  $('roomBackLobby').onclick=()=>run(backToLobby);
   $('roomLeave').onclick=()=>run(leaveRoom);
   $('vsLeave').onclick=()=>run(leaveRoom);
   $('roomBack').onclick=close;

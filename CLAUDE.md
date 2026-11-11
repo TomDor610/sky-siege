@@ -46,7 +46,7 @@
 | `ui/leaderboard-ui.js` | מסך "🏆 שיאים": לשוניות חברים/כולם, בורר קמפיין קל/בינוני/קשה/דו-קרב, כינוי, קוד חבר והזמנה |
 | `ui/title.js`, `draw/title-scene.js` | מסך הפתיחה (המסך הראשון, `mode='title'`): "שחק" נכנס ישר לקרב (שחקן חדש: קמפיין קל והדרכה, אלא אם בחר מצב; שחקן חוזר: הבחירה האחרונה), "המשך" פותח את הסדנה, כרטיסי מצב, שורת חשבון, הגדרות. הרקע החי משתמש בפונקציות הציור של המשחק, בלי סימולציה |
 | `analytics.js`, `sync/analytics-firebase.js` | `track(name,params)`: אירועי מסך הפתיחה ל-Firebase Analytics, נטען ברקע, במצב בלי עוגיות (`analytics_storage: denied`). כיבוי בהגדרות נשמר ב-`skysiege_analytics` |
-| `net/`, `ui/room-ui.js` | 1v1 בחדרים פרטיים (החלטות ושלבים: `docs/design/1v1.md`). `code.js`: קודי חדר. `rtdb.js`: Realtime Database, נטען ומתחבר רק בזמן שנמצאים בחדר. `room.js`: יצירה, הצטרפות, נוכחות, יציאה, ושלבי הבנייה. `loadout.js`: קידוד הבנייה ובדיקת עלות (זהה לכללים). `ui/vs-ui.js`: הבנייה העיוורת (הסדנה ב-`vsMode`: תקציב `VS_POOL`, הכול פתוח, בלי שדרוגים) |
+| `net/`, `ui/room-ui.js` | 1v1 בחדרים פרטיים (החלטות ושלבים: `docs/design/1v1.md`). `code.js`: קודי חדר. `rtdb.js`: Realtime Database, נטען ומתחבר רק בזמן שנמצאים בחדר. `room.js`: יצירה, הצטרפות, נוכחות, יציאה, ושלבי הבנייה. `loadout.js`: קידוד הבנייה ובדיקת עלות (זהה לכללים). `ui/vs-ui.js`: הבנייה העיוורת (הסדנה ב-`vsMode`: תקציב `VS_POOL`, הכול פתוח, בלי שדרוגים), המעבר לקרב ו"עוד קרב". `battle.js`: סנכרון הקרב (`G.net`): כל צד קובע מה קורה לדברים שלו, היריב מוצג משוקף ומאוחר ב-110ms, הכרעה לפי שעון השרת. ב-`game.js`/`physics.js`/`castle.js` מכונה וטירה עם `remote` הן תצוגה בלבד |
 | `ui/cloud-ui.js` | שורת מצב הענן וכפתור Google/התנתק בסדנה |
 | `flow.js` | ‏`start`, `pause`, `finish` (מסך תוצאה ומטבעות), `loop` |
 | `main.js` | אתחול לפי סדר קבוע ו-`window.__sky` |
@@ -70,7 +70,7 @@
 **חובה לשמור תאימות לאחור.** שחקנים אמיתיים כבר משחקים. כל שדה חדש נכנס דרך `freshProg()` ו-`Object.assign` בזמן הטעינה, ואסור לאפס להם התקדמות.
 
 ### ממשק לבדיקות
-`window.__sky` חושף `G`, `prog`, `input`, `press('bomb'|'flip')`, `step(n)`, `setMode`, `refresh`, `tutorial()` (מצב ההדרכה), `sound()` (מצב השמע: `state`, `settings`, `music`, `played`), `lang()` (השפה הנוכחית), `cloud()` (מצב השמירה בענן: `status`, `uid`, `isAnonymous`).
+`window.__sky` חושף `G`, `prog`, `input`, `press('bomb'|'flip')`, `step(n)`, `setMode`, `refresh`, `tutorial()` (מצב ההדרכה), `sound()` (מצב השמע: `state`, `settings`, `music`, `played`), `lang()` (השפה הנוכחית), `cloud()` (מצב השמירה בענן: `status`, `uid`, `isAnonymous`), `room()` (החדר), `net()` (קרב 1v1: שלב, תוצאה, פגיעות, תעבורה).
 הבדיקות ב-`tests/` (Playwright):
 - `helpers/autopilot.js`: טייס אוטומטי (`runBattle`) שמריץ קרב שלם ב-`step()` ומחזיר תוצאה. `Math.random` מקבל seed, והקרב רץ בקריאה סינכרונית אחת, כך שהתוצאה דטרמיניסטית.
 - `autopilot.spec.js`: דו-קרב וקמפיין × 3 רמות × 3 seeds. בודק שאין שגיאות ושהקרב מסתיים, וגם השוואה מדויקת ל-`tests/baseline.json`.

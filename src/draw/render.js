@@ -65,6 +65,6 @@ export function render(t){
       ctx.fillText(label,right?-10:10,26);ctx.restore();};
     ind(castleMid(G.foe),'rgba(163,52,31,.85)',tr('ind.meters',{m:Math.round(Math.abs(castleMid(G.foe)-me.x)/10)}));
     if(G.mine)ind(castleMid(G.mine),'rgba(79,107,44,.85)',tr('ind.mine'));
-    if(G.bot&&!G.bot.dead)ind(G.bot.x,'rgba(59,42,26,.85)',tr('ind.foe'));
+    const op=G.bot||G.opp;if(op&&!op.dead)ind(op.x,'rgba(59,42,26,.85)',tr('ind.foe'));
   }
 }
