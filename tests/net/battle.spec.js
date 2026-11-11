@@ -237,3 +237,16 @@ for (const [lang, locale] of [['he', 'he-IL'], ['en', 'en-US']]) for (const [pho
     if (lang === 'en') expect(/[֐-׿]/.test(await host.page.locator('#resultScreen').innerText())).toBe(false);
   });
 }
+
+test('after "another battle", the host leaves during the new build: the guest is told, nothing hangs', async ({ browser }, info) => {
+  const { host, guest } = await toBattle(browser, info);
+  await fell(guest);
+  await expect(host.page.locator('#vsRematch')).toBeVisible(WAIT);
+  await host.page.click('#vsRematch'); await guest.page.click('#vsRematch');
+  for (const p of [host, guest]) await expect(p.page.locator('#vsBar')).toBeVisible(WAIT);
+  await host.page.click('#vsLeave');
+  await expect(guest.page.locator('#roomMsg')).toHaveText('המארח עזב את החדר', WAIT);
+  await expect(host.page.locator('#roomMenu')).toBeVisible(WAIT);
+  // both pages still respond
+  for (const p of [host, guest]) expect(await p.page.evaluate(() => 1 + 1)).toBe(2);
+});

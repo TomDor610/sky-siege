@@ -77,6 +77,8 @@ function render(){
   $('roomCreate').disabled=$('roomJoin').disabled=busy;
   if(!r){
     $('roomMsg').textContent=busy?t('room.connecting'):ended?t('room.err.'+ended):msg;
+    // why the room ended, or why joining failed: shown as an alert, not as a quiet hint
+    $('roomMsg').classList.toggle('roomAlert',!busy&&!!(ended||msg));
     return;
   }
   if(rev){renderReveal(r,rev);return;}

@@ -209,3 +209,4 @@ body.vsReady #tabMachine .grid{pointer-events:none;opacity:.55}
 body.vsResult #vsResBtns{display:flex}
 body.vsResult #vsResMsg{display:block;margin-top:6px;min-height:18px}
 body.vsResult #againBtn,body.vsResult #rebuildBtn,body.vsResult #copyRow,body.vsResult #copyMsg,body.vsResult #earn{display:none}
+#roomMsg.roomAlert{font-size:15px;font-weight:700;color:var(--red);background:rgba(163,52,31,.09);border:1.5px solid rgba(163,52,31,.45);border-radius:8px;padding:6px 10px;margin:8px 0}
