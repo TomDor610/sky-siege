@@ -25,7 +25,7 @@ function darken(im,a){
   x.fillStyle=`rgba(30,18,6,${a})`;x.fillRect(0,0,c.width,c.height);return c;
 }
 load('hull',hullUrl,0.3);load('wing',wingUrl,0.25);load('blade',bladeUrl,0.55);
-load('stone',stoneUrl);load('greek',greekUrl);load('armor',armorUrl);
+load('stone',stoneUrl,0.35);load('greek',greekUrl,0.35);load('armor',armorUrl);
 
 /** True when the Classic should be drawn from sprites (beta flag on, all images loaded). */
 export function classicSprites(){
@@ -48,25 +48,32 @@ function hOf(k,w){const im=IMG[k];return w*im.naturalHeight/im.naturalWidth;}
 export function drawClassicSprite(c,b,t,bombsLoaded,damaged,mid){
   const greek=b.bombType==='greek';
   const n=Math.min(bombsLoaded,12);
-  // bombs: two staggered rows; the back row hangs partly behind the hull
-  const bombs=[];for(let i=0;i<n;i++)bombs.push({row:i%2,col:i>>1});
-  drawBombs(c,bombs.filter(q=>q.row===1),greek);
-  // hull (pilot included in the sprite)
+  // hull (pilot included in the sprite), then the bomb rack under it
   const hh=hOf('hull',HULL.w);
   c.drawImage(img('hull',damaged),HULL.x,HULL.y,HULL.w,hh);
-  drawBombs(c,bombs.filter(q=>q.row===0),greek);
+  const bombs=[];for(let i=0;i<n;i++)bombs.push({row:i%2,col:i>>1});
+  drawRack(c,bombs,greek);
   drawArmor(c,b.armor);
   mid();
   drawWings(c,b.wings,damaged);
   drawProps(c,b,t,damaged);
 }
 
-function drawBombs(c,list,greek){
+// A wooden beam on two posts under the hull. Bombs hang from it on short ropes in two
+// staggered rows (the back row higher and in shade); Greek fire pots hang by the neck, fuse unlit.
+const RACK={x0:-17,x1:16,y:11.5};
+function drawRack(c,bombs,greek){
+  c.fillStyle='#6b4521';c.strokeStyle=INK;c.lineWidth=0.7;
+  for(const x of [RACK.x0+1.5,RACK.x1-1.5]){c.beginPath();c.rect(x-0.7,7.5,1.4,RACK.y-7.5);c.fill();c.stroke();}
+  c.beginPath();c.rect(RACK.x0,RACK.y-0.7,RACK.x1-RACK.x0,1.4);c.fill();c.stroke();
   const k=greek?'greek':'stone', w=5, h=hOf(k,w);
-  for(const q of list){
-    const x=-14+q.col*5.4+(q.row?2.7:0), top=q.row?8.2:10.4;
-    c.drawImage(IMG[k],x-w/2,top,w,h);
+  for(const row of [1,0])for(const q of bombs){
+    if(q.row!==row)continue;
+    const x=-13.5+q.col*5.4+(row?2.7:0), top=RACK.y+(row?1.2:3.6);
+    c.strokeStyle='#8a6a3e';c.lineWidth=0.5;c.beginPath();c.moveTo(x,RACK.y);c.lineTo(x,top+(greek?1.2:0.6));c.stroke();
+    c.drawImage(row?DARK[k]:IMG[k],x-w/2,top,w,h);
   }
+  c.strokeStyle=INK;c.lineWidth=1.6;
 }
 
 function drawArmor(c,n){
