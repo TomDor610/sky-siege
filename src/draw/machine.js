@@ -2,9 +2,14 @@
 import {INK} from '../data.js';
 import {build} from '../state.js';
 import {preview} from '../ui/build.js';
+import {classicSprites,drawClassicSprite} from './machine-sprites.js';
 export function drawMachine(c,b,t,bombsLoaded,damaged){
   const st=b.style||'classic';
   c.save();c.lineJoin='round';c.lineCap='round';c.strokeStyle=INK;c.lineWidth=1.6;
+  if(st==='classic'&&classicSprites()){
+    drawClassicSprite(c,b,t,bombsLoaded,damaged,()=>{c.strokeStyle=INK;c.lineWidth=1.6;armorAndBows(c,b);});
+    c.restore();return;
+  }
   if(st==='airship'){
     c.beginPath();c.moveTo(-18,-26);c.lineTo(-16,-4);c.moveTo(18,-26);c.lineTo(16,-4);c.moveTo(0,-22);c.lineTo(0,-4);c.stroke();
     c.beginPath();c.ellipse(0,-42,46,19,0,0,Math.PI*2);c.fillStyle=damaged?'#c9a663':'#dcb56c';c.fill();c.stroke();
@@ -66,13 +71,7 @@ export function drawMachine(c,b,t,bombsLoaded,damaged){
   if(st==='falcon'){c.beginPath();c.moveTo(-36,-5);c.lineTo(-46,-16);c.lineTo(-28,-5);c.fillStyle='#7b3f22';c.fill();c.stroke();
     c.beginPath();c.moveTo(48,-3);c.lineTo(57,0);c.lineTo(47,2);c.fillStyle='#b07d22';c.fill();c.stroke();}
   else{const nx=st==='galleon'?40:st==='bat'?33:st==='airship'?31:38;c.beginPath();c.moveTo(nx,-3);c.lineTo(nx+9,-1);c.lineTo(nx,2);c.fillStyle='#6d6f6a';c.fill();c.stroke();}
-  // armor
-  for(let i=0;i<b.armor;i++){c.fillStyle='#8f918b';c.beginPath();c.rect(-24+i*9.5,-3,8,7.5);c.fill();c.stroke();}
-  // crossbows on deck
-  for(let i=0;i<(b.crossbows||0);i++){
-    const x=24-i*8,y=-8;c.fillStyle='#8a5e33';c.fillRect(x-6,y-1.5,14,3);c.strokeRect(x-6,y-1.5,14,3);
-    c.beginPath();c.moveTo(x+6,y-6);c.quadraticCurveTo(x+10,y,x+6,y+6);c.stroke();
-  }
+  armorAndBows(c,b);
   // pilot
   const hx=st==='falcon'?10:14,hy=st==='galleon'?-13:-9;
   c.fillStyle='#e5c49b';c.beginPath();c.arc(hx,hy,4.3,0,7);c.fill();c.stroke();
@@ -83,4 +82,12 @@ export function drawMachine(c,b,t,bombsLoaded,damaged){
   const greek=b.bombType==='greek';
   for(let i=0;i<nb;i++){c.fillStyle=greek?'#b5562a':'#5a544c';c.beginPath();c.arc(-18+i*5,by,2.6,0,7);c.fill();c.stroke();}
   c.restore();
+}
+// Armor plates on the hull side and crossbows on deck (shared by the drawn and the sprite hull).
+function armorAndBows(c,b){
+  for(let i=0;i<b.armor;i++){c.fillStyle='#8f918b';c.beginPath();c.rect(-24+i*9.5,-3,8,7.5);c.fill();c.stroke();}
+  for(let i=0;i<(b.crossbows||0);i++){
+    const x=24-i*8,y=-8;c.fillStyle='#8a5e33';c.fillRect(x-6,y-1.5,14,3);c.strokeRect(x-6,y-1.5,14,3);
+    c.beginPath();c.moveTo(x+6,y-6);c.quadraticCurveTo(x+10,y,x+6,y+6);c.stroke();
+  }
 }
