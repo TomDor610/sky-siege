@@ -1,4 +1,4 @@
-// Hand-painted sprites for the 2.5D art pass (docs/ART_2.5D brief). Classic and Falcon have
+// Hand-painted sprites for the 2.5D art pass (docs/ART_2.5D brief). Classic, Falcon and Galleon have
 // sprites so far, and they show only in beta (?beta=1) until the new look is approved.
 // Each style brings its own hull and wing; propeller, bombs, rack and armor are shared.
 // Units match drawMachine: nose to the right, y down, the hull about 80 units long.
@@ -13,6 +13,8 @@ import greekUrl from '../assets/classic/greek.webp';
 import armorUrl from '../assets/classic/armor.webp';
 import falconHullUrl from '../assets/falcon/hull.webp';
 import falconWingUrl from '../assets/falcon/wing.webp';
+import galleonHullUrl from '../assets/galleon/hull.webp';
+import galleonWingUrl from '../assets/galleon/wing.webp';
 
 const IMG={}, DARK={};
 let loaded=0, total=0, beta=null;
@@ -30,13 +32,17 @@ function darken(im,a){
 load('hull',hullUrl,0.3);load('wing',wingUrl,0.25);load('blade',bladeUrl,0.55);
 load('stone',stoneUrl,0.35);load('greek',greekUrl,0.35);load('armor',armorUrl);
 load('falconHull',falconHullUrl,0.3);load('falconWing',falconWingUrl,0.25);
+load('galleonHull',galleonHullUrl,0.3);load('galleonWing',galleonWingUrl,0.25);
 
 // Layout per style, in machine units. hull: top-left corner and width (height follows the
 // image). wing: centre x and width; kept clear of the pilot so the struts never hide him.
+// wy: [y of a lone wing, y of the lowest of a stack, gap between stacked wings].
+// wt: how much thicker than the image the wing is drawn (thin airfoils need it at phone size).
 // prop: x of the hubs and of the stern bracket. rack: beam ends, post tops, beam height.
 const ART={
-  classic:{hull:'hull',wing:'wing',hx:-37,hy:-11,hw:82,wcx:20,ww:40,px:-40,stern:-34,rack:{x0:-17,x1:16,top:7.5,y:11.5}},
-  falcon:{hull:'falconHull',wing:'falconWing',hx:-40,hy:-11.7,hw:86,wcx:-14,ww:36,px:-43,stern:-37,rack:{x0:-17,x1:16,top:4,y:8.5}},
+  classic:{hull:'hull',wing:'wing',hx:-37,hy:-11,hw:82,wcx:20,ww:40,wt:1.7,wy:[-20,2,9.5],px:-40,stern:-34,rack:{x0:-17,x1:16,top:7.5,y:11.5}},
+  falcon:{hull:'falconHull',wing:'falconWing',hx:-40,hy:-11.7,hw:86,wcx:-14,ww:36,wt:1.7,wy:[-20,2,9.5],px:-43,stern:-37,rack:{x0:-17,x1:16,top:4,y:8.5}},
+  galleon:{hull:'galleonHull',wing:'galleonWing',hx:-43,hy:-16,hw:86,wcx:-6,ww:46,wt:1,wy:[-22,-10,7.5],px:-46,stern:-41,rack:{x0:-17,x1:16,top:9,y:14}},
 };
 const PROP={K:0.32,MAX:40};                // K: depth axis of the spin ellipse; MAX rad/s
 
@@ -88,12 +94,13 @@ function drawArmor(c,n){
 }
 
 function drawWings(c,A,n,damaged){
-  const WING={cx:A.wcx,w:A.ww}, h=hOf(A.wing,WING.w)*1.7, ys=[];   // airfoil drawn thicker so it reads at phone size
-  if(n<=1)ys.push(-20);else for(let i=0;i<n;i++)ys.push(2-i*9.5);
+  const WING={cx:A.wcx,w:A.ww}, h=hOf(A.wing,WING.w)*A.wt, ys=[];
+  const [y1,y0,gap]=A.wy;
+  if(n<=1)ys.push(y1);else for(let i=0;i<n;i++)ys.push(y0-i*gap);
   // struts and X bracing
   const sx=[WING.cx-8,WING.cx+7];
   const pairs=[];for(let i=0;i<ys.length-1;i++)pairs.push([ys[i],ys[i+1]]);
-  if(n<=1)pairs.push([-6,ys[0]]);
+  if(n<=1)pairs.push([y1+14,ys[0]]);
   for(const [a,z] of pairs){
     c.strokeStyle='#b08a55';c.lineWidth=0.6;c.beginPath();
     c.moveTo(sx[0],a);c.lineTo(sx[1],z);c.moveTo(sx[1],a);c.lineTo(sx[0],z);c.stroke();

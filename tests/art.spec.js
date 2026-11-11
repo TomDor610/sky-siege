@@ -31,11 +31,13 @@ for (const parts of [{ wings: 1, props: 1, bombs: 3 }, { wings: 2, props: 2, bom
   });
 }
 
-test('beta sprites: falcon draws in the workshop preview', async ({ page }) => {
-  await beta(page);
-  await page.addInitScript(() => localStorage.setItem('skysiege_build2', JSON.stringify({ style: 'classic', bombType: 'stone', wings: 2, props: 2, armor: 1, bombs: 6, crossbows: 0 })));
-  const errors = await openGame(page);
-  await page.click('#styles button:nth-child(2)'); // falcon (locked styles can still be previewed)
-  await frames(page, 30);
-  expect(errors).toEqual([]);
-});
+for (const [nth, style] of [[2, 'falcon'], [3, 'galleon']]) {
+  test(`beta sprites: ${style} draws in the workshop preview`, async ({ page }) => {
+    await beta(page);
+    await page.addInitScript(() => localStorage.setItem('skysiege_build2', JSON.stringify({ style: 'classic', bombType: 'stone', wings: 4, props: 3, armor: 2, bombs: 6, crossbows: 0 })));
+    const errors = await openGame(page);
+    await page.click(`#styles button:nth-child(${nth})`); // locked styles can still be previewed
+    await frames(page, 30);
+    expect(errors).toEqual([]);
+  });
+}
