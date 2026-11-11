@@ -2,12 +2,12 @@
 import {INK} from '../data.js';
 import {build} from '../state.js';
 import {preview} from '../ui/build.js';
-import {classicSprites,drawClassicSprite} from './machine-sprites.js';
+import {hasSprites,drawSpriteMachine} from './machine-sprites.js';
 export function drawMachine(c,b,t,bombsLoaded,damaged){
   const st=b.style||'classic';
   c.save();c.lineJoin='round';c.lineCap='round';c.strokeStyle=INK;c.lineWidth=1.6;
-  if(st==='classic'&&classicSprites()){
-    drawClassicSprite(c,b,t,bombsLoaded,damaged,()=>{c.strokeStyle=INK;c.lineWidth=1.6;bows(c,b);});
+  if(hasSprites(st)){
+    drawSpriteMachine(c,b,t,bombsLoaded,damaged,()=>{c.strokeStyle=INK;c.lineWidth=1.6;bows(c,b);});
     c.restore();return;
   }
   if(st==='airship'){

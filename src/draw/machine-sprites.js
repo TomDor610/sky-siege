@@ -1,5 +1,6 @@
-// Hand-painted sprites for the 2.5D art pass (docs/ART_2.5D brief). Only the Classic style
-// has sprites so far, and they show only in beta (?beta=1) until the new look is approved.
+// Hand-painted sprites for the 2.5D art pass (docs/ART_2.5D brief). Classic and Falcon have
+// sprites so far, and they show only in beta (?beta=1) until the new look is approved.
+// Each style brings its own hull and wing; propeller, bombs, rack and armor are shared.
 // Units match drawMachine: nose to the right, y down, the hull about 80 units long.
 // Drawing only: no game state is read or written and Math.random is never used.
 import {INK} from '../data.js';
@@ -10,6 +11,8 @@ import bladeUrl from '../assets/classic/blade.webp';
 import stoneUrl from '../assets/classic/stone.webp';
 import greekUrl from '../assets/classic/greek.webp';
 import armorUrl from '../assets/classic/armor.webp';
+import falconHullUrl from '../assets/falcon/hull.webp';
+import falconWingUrl from '../assets/falcon/wing.webp';
 
 const IMG={}, DARK={};
 let loaded=0, total=0, beta=null;
@@ -26,45 +29,48 @@ function darken(im,a){
 }
 load('hull',hullUrl,0.3);load('wing',wingUrl,0.25);load('blade',bladeUrl,0.55);
 load('stone',stoneUrl,0.35);load('greek',greekUrl,0.35);load('armor',armorUrl);
+load('falconHull',falconHullUrl,0.3);load('falconWing',falconWingUrl,0.25);
 
-/** True when the Classic should be drawn from sprites (beta flag on, all images loaded). */
-export function classicSprites(){
+// Layout per style, in machine units. hull: top-left corner and width (height follows the
+// image). wing: centre x and width; kept clear of the pilot so the struts never hide him.
+// prop: x of the hubs and of the stern bracket. rack: beam ends, post tops, beam height.
+const ART={
+  classic:{hull:'hull',wing:'wing',hx:-37,hy:-11,hw:82,wcx:20,ww:40,px:-40,stern:-34,rack:{x0:-17,x1:16,top:7.5,y:11.5}},
+  falcon:{hull:'falconHull',wing:'falconWing',hx:-40,hy:-11.7,hw:86,wcx:-14,ww:36,px:-43,stern:-37,rack:{x0:-17,x1:16,top:4,y:8.5}},
+};
+const PROP={K:0.32,MAX:40};                // K: depth axis of the spin ellipse; MAX rad/s
+
+/** True when this style should be drawn from sprites (beta flag on, all images loaded). */
+export function hasSprites(style){
   if(beta===null)beta=store.get('skysiege_beta')==='1';
-  return beta&&total>0&&loaded===total;
+  return beta&&!!ART[style]&&total>0&&loaded===total;
 }
-
-// Layout (machine units)
-const HULL={x:-37,y:-11,w:82};             // h follows the image
-const WING={cx:20,w:40};               // ahead of the pilot, so the struts never hide him
-const PROP={x:-40,K:0.32,MAX:40};          // K: depth axis of the spin ellipse; MAX rad/s
 
 function img(k,dmg){return dmg&&DARK[k]?DARK[k]:IMG[k];}
 function hOf(k,w){const im=IMG[k];return w*im.naturalHeight/im.naturalWidth;}
 
 /**
- * Draws the sprite Classic. `mid` runs after the hull and armor, before the wings
+ * Draws a sprite machine. `mid` runs after the hull and armor, before the wings
  * (crossbows sit on deck, under the lower wing).
  */
-export function drawClassicSprite(c,b,t,bombsLoaded,damaged,mid){
-  const greek=b.bombType==='greek';
+export function drawSpriteMachine(c,b,t,bombsLoaded,damaged,mid){
+  const A=ART[b.style||'classic'], greek=b.bombType==='greek';
   const n=Math.min(bombsLoaded,12);
   // hull (pilot included in the sprite), then the bomb rack under it
-  const hh=hOf('hull',HULL.w);
-  c.drawImage(img('hull',damaged),HULL.x,HULL.y,HULL.w,hh);
+  c.drawImage(img(A.hull,damaged),A.hx,A.hy,A.hw,hOf(A.hull,A.hw));
   const bombs=[];for(let i=0;i<n;i++)bombs.push({row:i%2,col:i>>1});
-  drawRack(c,bombs,greek);
+  drawRack(c,A.rack,bombs,greek);
   drawArmor(c,b.armor);
   mid();
-  drawWings(c,b.wings,damaged);
-  drawProps(c,b,t,damaged);
+  drawWings(c,A,b.wings,damaged);
+  drawProps(c,A,b,t,damaged);
 }
 
 // A wooden beam on two posts under the hull. Bombs hang from it on short ropes in two
 // staggered rows (the back row higher and in shade); Greek fire pots hang by the neck, fuse unlit.
-const RACK={x0:-17,x1:16,y:11.5};
-function drawRack(c,bombs,greek){
+function drawRack(c,RACK,bombs,greek){
   c.fillStyle='#6b4521';c.strokeStyle=INK;c.lineWidth=0.7;
-  for(const x of [RACK.x0+1.5,RACK.x1-1.5]){c.beginPath();c.rect(x-0.7,7.5,1.4,RACK.y-7.5);c.fill();c.stroke();}
+  for(const x of [RACK.x0+1.5,RACK.x1-1.5]){c.beginPath();c.rect(x-0.7,RACK.top,1.4,RACK.y-RACK.top);c.fill();c.stroke();}
   c.beginPath();c.rect(RACK.x0,RACK.y-0.7,RACK.x1-RACK.x0,1.4);c.fill();c.stroke();
   const k=greek?'greek':'stone', w=5, h=hOf(k,w);
   for(const row of [1,0])for(const q of bombs){
@@ -81,8 +87,8 @@ function drawArmor(c,n){
   for(let i=0;i<n;i++)c.drawImage(IMG.armor,-27+i*9.2,-4.6,w,h);
 }
 
-function drawWings(c,n,damaged){
-  const h=hOf('wing',WING.w)*1.7, ys=[];   // airfoil drawn thicker so it reads at phone size
+function drawWings(c,A,n,damaged){
+  const WING={cx:A.wcx,w:A.ww}, h=hOf(A.wing,WING.w)*1.7, ys=[];   // airfoil drawn thicker so it reads at phone size
   if(n<=1)ys.push(-20);else for(let i=0;i<n;i++)ys.push(2-i*9.5);
   // struts and X bracing
   const sx=[WING.cx-8,WING.cx+7];
@@ -95,21 +101,21 @@ function drawWings(c,n,damaged){
     for(const x of sx){c.moveTo(x,a);c.lineTo(x,z);}c.stroke();
   }
   c.strokeStyle=INK;c.lineWidth=1.6;
-  for(const y of ys)c.drawImage(img('wing',damaged),WING.cx-WING.w/2,y-h/2,WING.w,h);
+  for(const y of ys)c.drawImage(img(A.wing,damaged),WING.cx-WING.w/2,y-h/2,WING.w,h);
 }
 
 // Spin is a pure function of time (no per-machine state: the workshop preview draws a fresh
 // build object every frame). Several propellers turn slightly out of phase.
-function drawProps(c,b,t,damaged){
+function drawProps(c,A,b,t,damaged){
   const n=b.props, L=n<=2?11:8.5, gap=n>1?L*1.85:0, cy=n>2?-5:-2;
   const om=PROP.MAX*(damaged?0.62+0.06*Math.sin(t*3.1):1);
   const blur=0.7*Math.max(0,Math.min(1,(om/PROP.MAX-0.28)/0.4));   // keep the blades visible through the disc
   const ys=[];for(let i=0;i<n;i++)ys.push(cy+(i-(n-1)/2)*gap);
   // a short bracket from the stern, and a wooden mast when there are several propellers
-  c.strokeStyle='#5a3a1c';c.lineWidth=2.2;c.beginPath();c.moveTo(-34,-1);c.lineTo(PROP.x,Math.max(ys[0],Math.min(-1,ys[n-1])));
-  if(n>1){c.moveTo(PROP.x,ys[0]);c.lineTo(PROP.x,ys[n-1]);}
+  c.strokeStyle='#5a3a1c';c.lineWidth=2.2;c.beginPath();c.moveTo(A.stern,-1);c.lineTo(A.px,Math.max(ys[0],Math.min(-1,ys[n-1])));
+  if(n>1){c.moveTo(A.px,ys[0]);c.lineTo(A.px,ys[n-1]);}
   c.stroke();
-  for(let i=0;i<n;i++)prop(c,PROP.x-1.5,ys[i],t*om*(1+i*0.035)+i*0.9,L,blur);
+  for(let i=0;i<n;i++)prop(c,A.px-1.5,ys[i],t*om*(1+i*0.035)+i*0.9,L,blur);
   c.strokeStyle=INK;c.lineWidth=1.6;
 }
 
