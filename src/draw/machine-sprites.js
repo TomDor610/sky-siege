@@ -9,6 +9,7 @@ import wingUrl from '../assets/classic/wing.webp';
 import bladeUrl from '../assets/classic/blade.webp';
 import stoneUrl from '../assets/classic/stone.webp';
 import greekUrl from '../assets/classic/greek.webp';
+import armorUrl from '../assets/classic/armor.webp';
 
 const IMG={}, DARK={};
 let loaded=0, total=0, beta=null;
@@ -24,7 +25,7 @@ function darken(im,a){
   x.fillStyle=`rgba(30,18,6,${a})`;x.fillRect(0,0,c.width,c.height);return c;
 }
 load('hull',hullUrl,0.3);load('wing',wingUrl,0.25);load('blade',bladeUrl,0.55);
-load('stone',stoneUrl);load('greek',greekUrl);
+load('stone',stoneUrl);load('greek',greekUrl);load('armor',armorUrl);
 
 /** True when the Classic should be drawn from sprites (beta flag on, all images loaded). */
 export function classicSprites(){
@@ -34,16 +35,15 @@ export function classicSprites(){
 
 // Layout (machine units)
 const HULL={x:-37,y:-11,w:82};             // h follows the image
-const WING={cx:6,w:40};
-const PROP={x:-40,y:-1,K:0.32,MAX:40};     // K: depth axis of the spin ellipse; MAX rad/s
-const spin=new WeakMap();                  // per build object: blade angles and speed
+const WING={cx:20,w:40};               // ahead of the pilot, so the struts never hide him
+const PROP={x:-40,K:0.32,MAX:40};          // K: depth axis of the spin ellipse; MAX rad/s
 
 function img(k,dmg){return dmg&&DARK[k]?DARK[k]:IMG[k];}
 function hOf(k,w){const im=IMG[k];return w*im.naturalHeight/im.naturalWidth;}
 
 /**
- * Draws the sprite Classic. `mid` runs after the hull and before the wings
- * (armor plates and crossbows sit on the hull, under the lower wing).
+ * Draws the sprite Classic. `mid` runs after the hull and armor, before the wings
+ * (crossbows sit on deck, under the lower wing).
  */
 export function drawClassicSprite(c,b,t,bombsLoaded,damaged,mid){
   const greek=b.bombType==='greek';
@@ -55,6 +55,7 @@ export function drawClassicSprite(c,b,t,bombsLoaded,damaged,mid){
   const hh=hOf('hull',HULL.w);
   c.drawImage(img('hull',damaged),HULL.x,HULL.y,HULL.w,hh);
   drawBombs(c,bombs.filter(q=>q.row===0),greek);
+  drawArmor(c,b.armor);
   mid();
   drawWings(c,b.wings,damaged);
   drawProps(c,b,t,damaged);
@@ -68,13 +69,18 @@ function drawBombs(c,list,greek){
   }
 }
 
+function drawArmor(c,n){
+  const w=8.4, h=hOf('armor',w);
+  for(let i=0;i<n;i++)c.drawImage(IMG.armor,-27+i*9.2,-4.6,w,h);
+}
+
 function drawWings(c,n,damaged){
   const h=hOf('wing',WING.w)*1.7, ys=[];   // airfoil drawn thicker so it reads at phone size
-  if(n<=1)ys.push(-17);else for(let i=0;i<n;i++)ys.push(1-i*11);
+  if(n<=1)ys.push(-20);else for(let i=0;i<n;i++)ys.push(2-i*9.5);
   // struts and X bracing
   const sx=[WING.cx-8,WING.cx+7];
   const pairs=[];for(let i=0;i<ys.length-1;i++)pairs.push([ys[i],ys[i+1]]);
-  if(n<=1)pairs.push([-7,ys[0]]);
+  if(n<=1)pairs.push([-6,ys[0]]);
   for(const [a,z] of pairs){
     c.strokeStyle='#b08a55';c.lineWidth=0.6;c.beginPath();
     c.moveTo(sx[0],a);c.lineTo(sx[1],z);c.moveTo(sx[1],a);c.lineTo(sx[0],z);c.stroke();
@@ -85,21 +91,19 @@ function drawWings(c,n,damaged){
   for(const y of ys)c.drawImage(img('wing',damaged),WING.cx-WING.w/2,y-h/2,WING.w,h);
 }
 
+// Spin is a pure function of time (no per-machine state: the workshop preview draws a fresh
+// build object every frame). Several propellers turn slightly out of phase.
 function drawProps(c,b,t,damaged){
-  const n=b.props, L=n<=2?9:7, gap=n>1?L*1.9:0;
-  let s=spin.get(b);
-  if(!s||t<s.t||t-s.t>1){s={t,om:0,ang:[0,0.9,1.7,2.6]};spin.set(b,s);}
-  const dt=Math.min(0.05,t-s.t);s.t=t;
-  let target=PROP.MAX;if(damaged)target*=0.65+0.2*Math.sin(t*3.1)*Math.sin(t*7.3);
-  s.om+=(target-s.om)*(1-Math.exp(-dt*2.2));
-  const blur=Math.max(0,Math.min(1,(s.om/PROP.MAX-0.28)/0.4));
-  for(let i=0;i<n;i++){
-    const py=PROP.y+(i-(n-1)/2)*gap;
-    s.ang[i]+=s.om*dt*(1+i*0.035);
-    c.strokeStyle=INK;c.lineWidth=1.2;c.beginPath();c.moveTo(-35,-1);c.lineTo(PROP.x+1,py);c.stroke();
-    prop(c,PROP.x,py,s.ang[i],L,blur);
-  }
-  c.lineWidth=1.6;
+  const n=b.props, L=n<=2?11:8.5, gap=n>1?L*1.85:0, cy=n>2?-5:-2;
+  const om=PROP.MAX*(damaged?0.62+0.06*Math.sin(t*3.1):1);
+  const blur=0.7*Math.max(0,Math.min(1,(om/PROP.MAX-0.28)/0.4));   // keep the blades visible through the disc
+  const ys=[];for(let i=0;i<n;i++)ys.push(cy+(i-(n-1)/2)*gap);
+  // a short bracket from the stern, and a wooden mast when there are several propellers
+  c.strokeStyle='#5a3a1c';c.lineWidth=2.2;c.beginPath();c.moveTo(-34,-1);c.lineTo(PROP.x,Math.max(ys[0],Math.min(-1,ys[n-1])));
+  if(n>1){c.moveTo(PROP.x,ys[0]);c.lineTo(PROP.x,ys[n-1]);}
+  c.stroke();
+  for(let i=0;i<n;i++)prop(c,PROP.x-1.5,ys[i],t*om*(1+i*0.035)+i*0.9,L,blur);
+  c.strokeStyle=INK;c.lineWidth=1.6;
 }
 
 function prop(c,x,y,angle,L,blur){
