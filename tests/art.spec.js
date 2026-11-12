@@ -31,7 +31,7 @@ for (const parts of [{ wings: 1, props: 1, bombs: 3 }, { wings: 2, props: 2, bom
   });
 }
 
-for (const [nth, style] of [[2, 'falcon'], [3, 'galleon']]) {
+for (const [nth, style] of [[2, 'falcon'], [3, 'galleon'], [4, 'bat']]) {
   test(`beta sprites: ${style} draws in the workshop preview`, async ({ page }) => {
     await beta(page);
     await page.addInitScript(() => localStorage.setItem('skysiege_build2', JSON.stringify({ style: 'classic', bombType: 'stone', wings: 4, props: 3, armor: 2, bombs: 6, crossbows: 0 })));

@@ -1,4 +1,4 @@
-// Hand-painted sprites for the 2.5D art pass (docs/ART_2.5D brief). Classic, Falcon and Galleon have
+// Hand-painted sprites for the 2.5D art pass (docs/ART_2.5D brief). Classic, Falcon, Galleon and Bat have
 // sprites so far, and they show only in beta (?beta=1) until the new look is approved.
 // Each style brings its own hull and wing; propeller, bombs, rack and armor are shared.
 // Units match drawMachine: nose to the right, y down, the hull about 80 units long.
@@ -15,6 +15,8 @@ import falconHullUrl from '../assets/falcon/hull.webp';
 import falconWingUrl from '../assets/falcon/wing.webp';
 import galleonHullUrl from '../assets/galleon/hull.webp';
 import galleonWingUrl from '../assets/galleon/wing.webp';
+import batHullUrl from '../assets/bat/hull.webp';
+import batWingUrl from '../assets/bat/wing.webp';
 
 const IMG={}, DARK={};
 let loaded=0, total=0, beta=null;
@@ -33,6 +35,7 @@ load('hull',hullUrl,0.3);load('wing',wingUrl,0.25);load('blade',bladeUrl,0.55);
 load('stone',stoneUrl,0.35);load('greek',greekUrl,0.35);load('armor',armorUrl);
 load('falconHull',falconHullUrl,0.3);load('falconWing',falconWingUrl,0.25);
 load('galleonHull',galleonHullUrl,0.3);load('galleonWing',galleonWingUrl,0.25);
+load('batHull',batHullUrl,0.3);load('batWing',batWingUrl,0.25);
 
 // Layout per style, in machine units. hull: top-left corner and width (height follows the
 // image). wing: centre x and width; kept clear of the pilot so the struts never hide him.
@@ -43,6 +46,7 @@ const ART={
   classic:{hull:'hull',wing:'wing',hx:-37,hy:-11,hw:82,wcx:20,ww:40,wt:1.7,wy:[-20,2,9.5],px:-40,stern:-34,rack:{x0:-17,x1:16,top:7.5,y:11.5}},
   falcon:{hull:'falconHull',wing:'falconWing',hx:-40,hy:-11.7,hw:86,wcx:-14,ww:36,wt:1.7,wy:[-20,2,9.5],px:-43,stern:-37,rack:{x0:-17,x1:16,top:4,y:8.5}},
   galleon:{hull:'galleonHull',wing:'galleonWing',hx:-43,hy:-16,hw:86,wcx:-6,ww:46,wt:1.3,wy:[-18,-9,9],px:-46,stern:-41,rack:{x0:-17,x1:16,top:9,y:14}},
+  bat:{hull:'batHull',wing:'batWing',hx:-43,hy:-12,hw:86,wcx:16,ww:42,wt:0.6,wy:[-17,-10,9],px:-46,stern:-41,rack:{x0:-17,x1:16,top:7,y:12}},
 };
 const PROP={K:0.32,MAX:40};                // K: depth axis of the spin ellipse; MAX rad/s
 
