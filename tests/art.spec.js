@@ -41,3 +41,15 @@ for (const [nth, style] of [[2, 'falcon'], [3, 'galleon'], [4, 'bat'], [5, 'airs
     expect(errors).toEqual([]);
   });
 }
+
+test('beta sprites: crossbows draw on every style', async ({ page }) => {
+  await beta(page);
+  const errors = await openGame(page);
+  await page.evaluate(() => { const s = window.__sky; s.prog.unl.crossbow = true; Object.assign(s.build(), { wings: 2, crossbows: 2 }); s.refresh(); });
+  for (const nth of [1, 2, 3, 4, 5]) {
+    await page.click(`#styles button:nth-child(${nth})`);
+    await frames(page, 10);
+  }
+  expect(await page.evaluate(() => window.__sky.build().crossbows)).toBe(2);
+  expect(errors).toEqual([]);
+});

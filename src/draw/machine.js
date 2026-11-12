@@ -7,7 +7,7 @@ export function drawMachine(c,b,t,bombsLoaded,damaged){
   const st=b.style||'classic';
   c.save();c.lineJoin='round';c.lineCap='round';c.strokeStyle=INK;c.lineWidth=1.6;
   if(hasSprites(st)){
-    drawSpriteMachine(c,b,t,bombsLoaded,damaged,()=>{c.strokeStyle=INK;c.lineWidth=1.6;bows(c,b);});
+    drawSpriteMachine(c,b,t,bombsLoaded,damaged);
     c.restore();return;
   }
   if(st==='airship'){
