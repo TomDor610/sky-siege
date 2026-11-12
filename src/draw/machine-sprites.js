@@ -36,7 +36,7 @@ function darken(im,a){
   x.fillStyle=`rgba(30,18,6,${a})`;x.fillRect(0,0,c.width,c.height);return c;
 }
 load('hull',hullUrl,0.3);load('wing',wingUrl,0.25);load('blade',bladeUrl,0.55);
-load('stone',stoneUrl,0.35);load('greek',greekUrl,0.35);load('armor',armorUrl);load('crossbow',crossbowUrl,0.4);
+load('stone',stoneUrl,0.35);load('greek',greekUrl,0.35);load('armor',armorUrl);load('crossbow',crossbowUrl);
 load('falconHull',falconHullUrl,0.3);load('falconWing',falconWingUrl,0.25);
 load('galleonHull',galleonHullUrl,0.3);load('galleonWing',galleonWingUrl,0.25);
 load('batHull',batHullUrl,0.3);load('batWing',batWingUrl,0.25);
@@ -45,7 +45,7 @@ load('airHull',airHullUrl,0.3);load('airWing',airWingUrl,0.25);load('airBalloon'
 // Layout per style, in machine units. hull: top-left corner and width (height follows the
 // image). wing: centre x and width; kept clear of the pilot so the struts never hide him.
 // bal: the airship's gas bag (top-left corner and width) and its ropes [x,y on the bag, x,y on the gondola].
-// bow: [x,y] where the crossbow post stands on deck, clear of the wings.
+// bow: [x,y] of the crossbow on the deck line (its post hides behind the hull), clear of the wings.
 // wbase: y of the deck the lowest wing is strutted to (default: only a lone wing, 14 below it).
 // wy: [y of a lone wing, y of the lowest of a stack, gap between stacked wings].
 // wt: how much thicker than the image the wing is drawn (thin airfoils need it at phone size).
@@ -53,7 +53,7 @@ load('airHull',airHullUrl,0.3);load('airWing',airWingUrl,0.25);load('airBalloon'
 const ART={
   classic:{bow:[-12,-5],hull:'hull',wing:'wing',hx:-37,hy:-11,hw:82,wcx:20,ww:40,wt:1.7,wy:[-20,2,9.5],px:-40,stern:-34,rack:{x0:-17,x1:16,top:7.5,y:11.5}},
   falcon:{bow:[24,-5],hull:'falconHull',wing:'falconWing',hx:-40,hy:-11.7,hw:86,wcx:-14,ww:36,wt:1.7,wy:[-20,2,9.5],px:-43,stern:-37,rack:{x0:-17,x1:16,top:4,y:8.5}},
-  galleon:{bow:[31,-6],hull:'galleonHull',wing:'galleonWing',hx:-43,hy:-16,hw:86,wcx:-6,ww:46,wt:1.3,wy:[-18,-9,9],px:-46,stern:-41,rack:{x0:-17,x1:16,top:9,y:14}},
+  galleon:{bow:[31,-10],hull:'galleonHull',wing:'galleonWing',hx:-43,hy:-16,hw:86,wcx:-6,ww:46,wt:1.3,wy:[-18,-9,9],px:-46,stern:-41,rack:{x0:-17,x1:16,top:9,y:14}},
   bat:{bow:[-14,-8],hull:'batHull',wing:'batWing',hx:-43,hy:-12,hw:86,wcx:16,ww:42,wt:0.6,wy:[-17,-10,9],px:-46,stern:-41,rack:{x0:-17,x1:16,top:7,y:12}},
   airship:{bow:[22,-4],hull:'airHull',wing:'airWing',hx:-30,hy:-9,hw:66,wcx:-6,ww:24,wt:1.4,wy:[-12,-11,4.5],wbase:-4.5,px:-37,stern:-29,rack:{x0:-17,x1:16,top:6,y:11},
     bal:{x:-60,y:-61,w:112,ropes:[[-14,-28,-9.5,-5],[17,-28,12.9,-5],[-30,-31,-27,-4],[33,-31,30,-4]]}},
@@ -74,12 +74,12 @@ export function drawSpriteMachine(c,b,t,bombsLoaded,damaged){
   const A=ART[b.style||'classic'], greek=b.bombType==='greek';
   const n=Math.min(bombsLoaded,12);
   if(A.bal)drawBalloon(c,A.bal,damaged);
+  drawBow(c,A.bow,b.crossbows||0);
   // hull (pilot included in the sprite), then the bomb rack under it
   c.drawImage(img(A.hull,damaged),A.hx,A.hy,A.hw,hOf(A.hull,A.hw));
   const bombs=[];for(let i=0;i<n;i++)bombs.push({row:i%2,col:i>>1});
   drawRack(c,A.rack,bombs,greek);
   drawArmor(c,b.armor);
-  drawBows(c,A.bow,b.crossbows||0);
   drawWings(c,A,b.wings,damaged);
   drawProps(c,A,b,t,damaged);
 }
@@ -107,14 +107,13 @@ function drawBalloon(c,B,damaged){
   c.drawImage(img('airBalloon',damaged),B.x,B.y,B.w,hOf('airBalloon',B.w));
 }
 
-// Repeating crossbows on one swivel post, pointing ahead. A second crossbow is mounted
-// alongside the first, on the far side: seen from the side it peeks out just behind and
-// above it, in shade.
-function drawBows(c,B,n){
+// The repeating crossbow. Only one is ever drawn (a second one adds fire rate, not looks).
+// It is drawn before the hull so its swivel post sinks behind the bulwark and only the
+// stock and magazine show above the deck.
+function drawBow(c,B,n){
   if(n<=0)return;
-  const w=17, h=hOf('crossbow',w), x=B[0]-w/2, y=B[1]-h;
-  if(n>1)c.drawImage(DARK.crossbow,x-1.2,y-2.2,w,h);
-  c.drawImage(IMG.crossbow,x,y,w,h);
+  const w=17, h=hOf('crossbow',w);
+  c.drawImage(IMG.crossbow,B[0]-w/2,B[1]-h*0.72,w,h);
 }
 
 function drawArmor(c,n){

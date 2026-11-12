@@ -42,7 +42,7 @@ for (const [nth, style] of [[2, 'falcon'], [3, 'galleon'], [4, 'bat'], [5, 'airs
   });
 }
 
-test("beta sprites: crossbows (one or two, on one post) draw on every style", async ({ page }) => {
+test("beta sprites: one crossbow draws on every style, even with two fitted", async ({ page }) => {
   await beta(page);
   const errors = await openGame(page);
   await page.evaluate(() => { const s = window.__sky; s.prog.unl.crossbow = true; Object.assign(s.build(), { wings: 2, crossbows: 2 }); s.refresh(); });
