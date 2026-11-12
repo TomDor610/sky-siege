@@ -42,7 +42,7 @@ load('galleonHull',galleonHullUrl,0.3);load('galleonWing',galleonWingUrl,0.25);
 const ART={
   classic:{hull:'hull',wing:'wing',hx:-37,hy:-11,hw:82,wcx:20,ww:40,wt:1.7,wy:[-20,2,9.5],px:-40,stern:-34,rack:{x0:-17,x1:16,top:7.5,y:11.5}},
   falcon:{hull:'falconHull',wing:'falconWing',hx:-40,hy:-11.7,hw:86,wcx:-14,ww:36,wt:1.7,wy:[-20,2,9.5],px:-43,stern:-37,rack:{x0:-17,x1:16,top:4,y:8.5}},
-  galleon:{hull:'galleonHull',wing:'galleonWing',hx:-43,hy:-16,hw:86,wcx:-6,ww:46,wt:1,wy:[-22,-10,7.5],px:-46,stern:-41,rack:{x0:-17,x1:16,top:9,y:14}},
+  galleon:{hull:'galleonHull',wing:'galleonWing',hx:-43,hy:-16,hw:86,wcx:-6,ww:46,wt:1.3,wy:[-18,-9,9],px:-46,stern:-41,rack:{x0:-17,x1:16,top:9,y:14}},
 };
 const PROP={K:0.32,MAX:40};                // K: depth axis of the spin ellipse; MAX rad/s
 
