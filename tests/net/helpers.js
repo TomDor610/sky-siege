@@ -7,6 +7,8 @@ const EMU = {
   auth: 'http://127.0.0.1:9099', firestore: ['127.0.0.1', 8080], database: ['127.0.0.1', 9000],
 };
 const IGNORE = /fonts\.(googleapis|gstatic)\.com/;
+// Also ignored below: Chrome's "unload is not allowed" notice. The database SDK prints it itself
+// when it falls back to HTTP long polling (while a test cuts the WebSocket); it is not the game's.
 
 // lag: added delay in ms per direction (100 = 200 ms round trip), on the realtime WebSocket.
 // share: 'stub' records navigator.share calls, otherwise Web Share is unavailable.
@@ -16,7 +18,7 @@ export async function joinPlayer(browser, info, { locale = 'he-IL', viewport = {
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push('pageerror: ' + (e.stack || e.message)));
-  page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.location().url || '') && !IGNORE.test(m.text()) && !/ERR_|WebSocket connection|WebSocket is already/.test(m.text())) errors.push('console.error: ' + m.text()); });
+  page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.location().url || '') && !IGNORE.test(m.text()) && !/ERR_|WebSocket connection|WebSocket is already|unload is not allowed/.test(m.text())) errors.push('console.error: ' + m.text()); });
   const sockets = [];
   const bytes = { in: 0, out: 0 };   // realtime database traffic (WebSocket payloads)
   page.on('websocket', ws => {
@@ -34,7 +36,11 @@ export async function joinPlayer(browser, info, { locale = 'he-IL', viewport = {
   if (seed) await ctx.addInitScript(p => { if (!localStorage.getItem('skysiege_prog')) localStorage.setItem('skysiege_prog', JSON.stringify(p)); }, seed);
 
   const net = { blocked: false, open: [] };
-  if (lag) await page.routeWebSocket(/:9000\/\.ws/, ws => proxy(ws, lag, net));
+  if (lag) {
+    await page.routeWebSocket(/:9000\/\.ws/, ws => proxy(ws, lag, net));
+    // when its WebSocket fails, the database SDK falls back to HTTP long polling: block that too
+    await page.route(/:9000\//, r => (net.blocked ? r.abort() : r.continue()));
+  }
   const player = {
     ctx, page, errors, sockets, net, bytes,
     async open(path = '/') { await page.goto(path); await page.waitForFunction(() => !!window.__sky); return player; },
@@ -60,6 +66,9 @@ export async function cutNetwork(player) {
   player.net.blocked = true;
   for (const ws of player.net.open) await ws.close().catch(() => {});
 }
+
+// Let the connection back in (the SDK reconnects on its own, with its usual back-off).
+export function restoreNetwork(player) { player.net.blocked = false; player.net.open = []; }
 
 export const createRoom = async p => {
   await p.page.click('#ttlFriend');

@@ -17,10 +17,10 @@ import {$} from './util.js';
 import {ctx,cv,resize} from './view.js';
 import {duckMusic,setMusicMode,sfx,soundFrame} from './sound.js';
 import {syncResume} from './sync/index.js';
-import {netResult} from './net/battle.js';
+import {netResult,resultShown} from './net/battle.js';
 export let mode='title',last=0,tipTimer=0;
 export function show(id){['titleScreen','buildScreen','resultScreen','pauseScreen'].forEach(s=>$(s).classList.toggle('hidden',s!==id));}
-export function setPlayUI(on){['hud','pauseBtn','soundBtn'].forEach(s=>$(s).classList.toggle('hidden',!on));$('touch').classList.toggle('hidden',!(on&&isTouch));$('shootBtn').classList.toggle('hidden',!(build.crossbows>0));}
+export function setPlayUI(on){$('emojiBtn').classList.add('hidden');$('emojiBar').classList.add('hidden');['hud','pauseBtn','soundBtn'].forEach(s=>$(s).classList.toggle('hidden',!on));$('touch').classList.toggle('hidden',!(on&&isTouch));$('shootBtn').classList.toggle('hidden',!(build.crossbows>0));}
 export function start(){
   sanitize();setPreviewStyle(null);
   newGame();resetHud();mode='play';show(null);setPlayUI(true);resize();
@@ -41,7 +41,7 @@ export function toVsBuild(){vsOff();mode='menu';setG(null);setPlayUI(false);show
 // the 1v1 battle (net/battle.js builds G): countdown, then play. No pause, no tutorial.
 export function startNet(){
   vsOff();tutorialEnd();resetHud();mode='vscount';show(null);setPlayUI(true);
-  $('pauseBtn').classList.add('hidden');$('shootBtn').classList.toggle('hidden',!(G.me.build.crossbows>0));$('tip').classList.add('hidden');
+  $('pauseBtn').classList.add('hidden');$('emojiBtn').classList.remove('hidden');$('shootBtn').classList.toggle('hidden',!(G.me.build.crossbows>0));$('tip').classList.add('hidden');
   for(const k in input)input[k]=false;
   resize();hud();setMusicMode('battle');duckMusic(false);
 }
@@ -49,11 +49,12 @@ export function startNet(){
 export function toVsRoom(){vsOff();setMusicMode('menu');mode='menu';setG(null);setPlayUI(false);show(null);resize();}
 function netFinish(){
   const v=netResult();
-  sfx(v.res==='won'?'win':v.res==='lost'?'lose':'launch');setMusicMode('menu');duckMusic(false);
+  sfx(v.res==='won'||v.res==='techWon'?'win':v.res==='lost'||v.res==='techLost'?'lose':'launch');setMusicMode('menu');duckMusic(false);
   mode='result';setPlayUI(false);$('tip').classList.add('hidden');$('vsCount').classList.add('hidden');
   $('resTitle').textContent=v.title;$('resText').textContent=v.text;$('earn').innerHTML='';$('copyMsg').textContent='';
   document.body.classList.add('vsResult');show('resultScreen');
   if(G)G.state='over';
+  resultShown();
 }
 export function pause(){if(mode!=='play'||(G&&G.net))return;mode='pause';show('pauseScreen');duckMusic(true);}
 export let shareText='';

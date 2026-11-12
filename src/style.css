@@ -210,3 +210,16 @@ body.vsResult #vsResBtns{display:flex}
 body.vsResult #vsResMsg{display:block;margin-top:6px;min-height:18px}
 body.vsResult #againBtn,body.vsResult #rebuildBtn,body.vsResult #copyRow,body.vsResult #copyMsg,body.vsResult #earn{display:none}
 #roomMsg.roomAlert{font-size:15px;font-weight:700;color:var(--red);background:rgba(163,52,31,.09);border:1.5px solid rgba(163,52,31,.45);border-radius:8px;padding:6px 10px;margin:8px 0}
+/* 1v1 drops and emoji (stage 4) */
+#vsNet{position:fixed;left:50%;top:calc(var(--btnTop,64px) + 2px);transform:translateX(-50%);z-index:7;max-width:92vw;text-align:center;background:rgba(163,52,31,.93);color:var(--parch);font-weight:700;font-size:15px;padding:6px 14px;border-radius:8px;pointer-events:none;box-shadow:0 2px 8px rgba(59,42,26,.3)}
+#emojiBtn{pointer-events:auto;font-size:16px;padding:2px 9px;background:rgba(242,228,196,.88)}
+#emojiBtn.cool{opacity:.45}
+#emojiBar{position:fixed;top:calc(var(--btnTop,64px) + 40px);left:10px;z-index:7;display:flex;flex-wrap:wrap;gap:4px;max-width:200px;background:rgba(242,228,196,.95);border:1.5px solid var(--ink);border-radius:10px;padding:5px}
+html[dir=ltr] #emojiBar{left:auto;right:10px}
+#emojiBar.hidden{display:none}
+.emo{font-size:22px;line-height:1;padding:5px 6px;min-width:0;background:transparent;border-color:transparent}
+.emo:disabled{opacity:.35}
+#vsEmojiRow{display:none;justify-content:center;gap:2px;margin-top:8px;flex-wrap:wrap}
+body.vsResult #vsEmojiRow{display:flex}
+#vsToast{font-size:20px;font-weight:700;margin-top:6px}
+#vsToast.hidden{display:none}

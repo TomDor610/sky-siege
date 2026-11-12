@@ -6,8 +6,8 @@
 // A player leaving during the build or the reveal cancels the match; during the battle it ends it.
 import {t} from '../i18n/index.js';
 import {decodeLoadout,encodeLoadout} from '../net/loadout.js';
-import {abortNet,beginNet,netInfo,onNetChange,sendRematch,stopNet} from '../net/battle.js';
-import {backToLobby,bothHere,onRoomChange,opponentOf,readLoadouts,reveal,roomInfo,saveLoadout,serverNow,setReady,startBattle,startBuild} from '../net/room.js';
+import {abortNet,beginNet,netInfo,onNetChange,sendRematch,setNetStart,stopNet} from '../net/battle.js';
+import {awayLong,backToLobby,battleStart,bothActive,bothHere,dropAwayGuest,leaveRoom,onRoomChange,opponentOf,readLoadouts,reveal,roomInfo,saveLoadout,serverNow,setReady,startBattle,startBuild} from '../net/room.js';
 import {onVsSaved,sanitize,setVsMode,vsMode} from '../progress.js';
 import {build,fort,setBuild,setFort} from '../state.js';
 import {$,store} from '../util.js';
@@ -115,13 +115,13 @@ async function enterBattle(r){
     catch(e){battleRound=0;setTimeout(onRoom,1000);return;}            // slow line: try again
   }
   const now=roomInfo().room;if(!now||now.meta.state!=='battle'||now.meta.round!==battleRound)return;
-  if(!beginNet({mine:rev.mine,theirs:rev.theirs,battleAt:r.meta.battleAt,seed:r.meta.seed,round:r.meta.round,oppName:nameOf(r,opponentOf(r))}))return;
+  if(!beginNet({mine:rev.mine,theirs:rev.theirs,battleAt:battleStart(r.meta),seed:r.meta.seed,round:r.meta.round,oppName:nameOf(r,opponentOf(r))}))return;
   $('roomScreen').classList.add('hidden');
   startNet();renderResult();
 }
 
 function renderResult(){
-  const {room:r}=roomInfo(),n=netInfo(),here=!!r&&bothHere(r);
+  const {room:r}=roomInfo(),n=netInfo(),here=!!r&&bothActive(r);
   const b=$('vsRematch');
   b.disabled=!here||!n.active||n.result==='left'||rematchAsked;
   b.textContent=rematchAsked&&here?t('vs.rematchWait'):t('vs.rematch');
@@ -170,7 +170,7 @@ async function onRoom(){
   }
   if(st==='battle'){
     if(battleRound!==r.meta.round)await enterBattle(r);
-    else if(onResult())renderResult();
+    else{setNetStart(battleStart(r.meta));if(onResult())renderResult();}
     return;
   }
   if(st==='lobby'){
@@ -189,7 +189,13 @@ export function initVsUI(){
     renderResult();
   };
   // back to the room (the room stays; the host can start a new build from the lobby)
-  $('vsExit').onclick=()=>{stopNet();toVsRoom();revealed=null;showRoom();notify();};
+  $('vsExit').onclick=async()=>{
+    const {room:r}=roomInfo();
+    stopNet();toVsRoom();revealed=null;showRoom();notify();
+    // the friend never came back: the guest closes the room, the host frees the seat
+    if(r&&r.role==='guest'&&awayLong(r,r.meta.host))await leaveRoom('hostLeft');
+    else if(r&&r.role==='host')await dropAwayGuest();
+  };
   onVsSaved(()=>{if(!ready)push(false);});
   $('vsReady').onclick=async()=>{
     const want=!ready;

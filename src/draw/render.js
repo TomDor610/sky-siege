@@ -1,5 +1,5 @@
 // Frame renderer for a running battle.
-import {castleMid} from '../castle.js';
+import {castleMid,castleTop} from '../castle.js';
 import {INK,WORLD} from '../data.js';
 import {drawCastle} from './castle.js';
 import {drawMachine} from './machine.js';
@@ -11,6 +11,14 @@ import {t as tr,textDir} from '../i18n/index.js'; // 't' is the time parameter h
 import {G} from '../state.js';
 import {clamp} from '../util.js';
 import {ctx,cv,scale,viewH,viewW} from '../view.js';
+function drawBubble(x,y,e,a){
+  ctx.save();ctx.globalAlpha=a;ctx.fillStyle='rgba(252,246,230,.96)';ctx.strokeStyle=INK;ctx.lineWidth=1.8;
+  ctx.beginPath();ctx.moveTo(x-30,y-24);ctx.lineTo(x+30,y-24);ctx.quadraticCurveTo(x+36,y-24,x+36,y-18);ctx.lineTo(x+36,y+16);ctx.quadraticCurveTo(x+36,y+22,x+30,y+22);
+  ctx.lineTo(x+8,y+22);ctx.lineTo(x,y+34);ctx.lineTo(x-8,y+22);ctx.lineTo(x-30,y+22);ctx.quadraticCurveTo(x-36,y+22,x-36,y+16);ctx.lineTo(x-36,y-18);ctx.quadraticCurveTo(x-36,y-24,x-30,y-24);
+  ctx.fill();ctx.stroke();
+  ctx.font='28px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=INK;ctx.fillText(e,x,y);ctx.textBaseline='alphabetic';
+  ctx.restore();
+}
 export function render(t){
   const W=cv.width,H=cv.height;
   const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#fcf4de');g.addColorStop(1,'#fef9ec');
@@ -40,6 +48,7 @@ export function render(t){
     const dir=planeDir(pl);ctx.save();ctx.translate(pl.x,pl.y);ctx.rotate(Math.atan2(dir.y,dir.x));
     const sy=pl.facing*(1-2*pl.roll);ctx.scale(1.2,1.2*(Math.abs(sy)<0.08?0.08*Math.sign(sy||1):sy));
     if(pl.hitFlash>0)ctx.globalAlpha=0.6+0.4*Math.sin(t*60);
+    if(pl.away)ctx.globalAlpha=0.35;   // 1v1: the friend dropped out
     drawMachine(ctx,pl.build,t,pl.bombs,pl.hp<pl.st.hp*0.5);
     if(G.duel){ctx.strokeStyle=INK;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(-30,-6);ctx.lineTo(-30,-26);ctx.stroke();ctx.fillStyle=pl.side==='L'?'#4f6b2c':'#a3341f';ctx.beginPath();ctx.moveTo(-30,-26);ctx.lineTo(-44,-22+Math.sin(t*8)*2);ctx.lineTo(-30,-18);ctx.fill();}
     ctx.restore();
@@ -53,7 +62,16 @@ export function render(t){
   }
   ctx.font='bold 20px "Frank Ruhl Libre",serif';ctx.textAlign='center';ctx.direction=textDir();
   for(const f of G.floaters){ctx.globalAlpha=clamp(f.life,0,1);ctx.lineWidth=4;ctx.strokeStyle='rgba(242,228,196,.9)';ctx.strokeText(f.text,f.x,f.y);ctx.fillStyle=f.color;ctx.fillText(f.text,f.x,f.y);}
-  ctx.globalAlpha=1;ctx.restore();
+  ctx.globalAlpha=1;
+  // 1v1: "offline" over the friend's faded plane, and emoji bubbles above the castles (kept on
+  // screen at the edge when the castle is out of view)
+  for(const pl of G.planes)if(pl.away&&!pl.crashed){ctx.font='bold 15px "Frank Ruhl Libre",serif';ctx.fillStyle='#a3341f';ctx.fillText(tr('vs.awayTag'),pl.x,pl.y-42);}
+  if(G.bubbles&&G.bubbles.length){
+    const now=performance.now();G.bubbles=G.bubbles.filter(b=>b.until>now);
+    for(const b of G.bubbles){const c=b.side==='L'?G.mine:G.foe;if(!c)continue;
+      drawBubble(clamp(castleMid(c),camx+46,camx+viewW-46),clamp(castleTop(c)-80,camy+56,camy+viewH-70),b.e,clamp((b.until-now)/400,0,1));}
+  }
+  ctx.restore();
   paperOverlay();ctx.setTransform(scale,0,0,scale,0,0);
   // off-screen indicators
   if(G.state==='play'){

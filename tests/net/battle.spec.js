@@ -48,9 +48,10 @@ test('start: same countdown on both sides, no pause; each player is on the left 
     await expect(p.page.locator('#tut')).toBeHidden();
     await expect(p.page.locator('#vsCount')).toBeHidden(WAIT);
   }
-  // the battle clocks agree (server time)
+  // the battle clocks agree: each follows its own estimate of the server clock, which the
+  // emulator gives only roughly (the real server is usually closer); the time-up rule has 1 s to spare
   const [a, b] = await Promise.all([G(host, () => window.__sky.G.t), G(guest, () => window.__sky.G.t)]);
-  expect(Math.abs(a - b)).toBeLessThan(0.5);
+  expect(Math.abs(a - b)).toBeLessThan(1);
   // the host parks on its left; the guest sees it on its right, at the mirrored spot
   await park(host, 700, 400);
   await expect.poll(() => G(guest, () => Math.abs(window.__sky.G.opp.x - (4000 - 700))), WAIT).toBeLessThan(60);
@@ -67,7 +68,7 @@ test('the friend\'s plane moves smoothly and follows the real one ~110 ms behind
   // the host flies freely; both record (server time, x) every frame for 3 s
   const rec = (p, who) => p.page.evaluate(who => new Promise(res => {
     const out = [], end = performance.now() + 3000;
-    const f = () => { const n = window.__sky.net(), pl = window.__sky.G[who]; out.push([n.now, pl.x, pl.y, pl.dead, n.delay]); if (performance.now() < end) requestAnimationFrame(f); else res(out); };
+    const f = () => { const n = window.__sky.net(), pl = window.__sky.G[who]; out.push([Date.now(), pl.x, pl.y, pl.dead, n.delay]); if (performance.now() < end) requestAnimationFrame(f); else res(out); };
     requestAnimationFrame(f);
   }), who);
   const [real, seen] = await Promise.all([rec(host, 'me'), rec(guest, 'opp')]);
@@ -78,7 +79,8 @@ test('the friend\'s plane moves smoothly and follows the real one ~110 ms behind
   for (let i = 1; i < alive.length; i++) { const dt = (alive[i][0] - alive[i - 1][0]) / 1000; if (dt > 0) speeds.push(Math.hypot(alive[i][1] - alive[i - 1][1], alive[i][2] - alive[i - 1][2]) / dt); }
   speeds.sort((x, y) => x - y);
   expect(speeds[Math.floor(speeds.length * 0.95)]).toBeLessThan(900);
-  // accurate: the guest's view at T matches the host's real position at T-delay (mirrored; delay is 110 ms on a good line)
+  // accurate: the guest's view at T matches the host's real position at T-delay (mirrored; delay is 110 ms on a good line;
+  // both pages run on this machine, so Date.now is one clock for both)
   const at = t => { let best = real[0]; for (const r of real) if (Math.abs(r[0] - t) < Math.abs(best[0] - t)) best = r; return best; };
   const errs = alive.slice(10).filter(s => s[0] - s[4] > real[0][0]).map(s => { const r = at(s[0] - s[4]); return r[3] ? 0 : Math.hypot(W - r[1] - s[1], r[2] - s[2]); });
   errs.sort((x, y) => x - y);
@@ -167,15 +169,19 @@ test('time is up after 2:30: the stronger castle wins by points, the same on bot
   expect(t).toBeGreaterThanOrEqual(150);
 });
 
-test('the friend leaves in the middle: the battle ends, no "another battle"; back to the room', async ({ browser }, info) => {
+test('the friend closes the game in the middle: a 20 s wait, then a technical win; the seat is freed', async ({ browser }, info) => {
+  test.setTimeout(150_000);
   const { host, guest } = await toBattle(browser, info);
   await guest.close();
-  await expect(title(host)).toHaveText('החבר יצא', WAIT);
+  await expect(host.page.locator('#vsNet')).toContainText('החבר התנתק', WAIT);
+  await expect(title(host)).toHaveText('ניצחון טכני ⚔', { timeout: 40_000 });
+  await expect(host.page.locator('#resText')).toContainText('יותר מ-20 שניות');
   await expect(host.page.locator('#vsRematch')).toBeDisabled();
   await expect(host.page.locator('#vsResMsg')).toHaveText('החבר יצא מהחדר');
   await host.page.click('#vsExit');
   await expect(host.page.locator('#roomLobby')).toBeVisible(WAIT);
   await expect(host.page.locator('#roomStart')).toBeHidden();
+  await expect.poll(() => G(host, () => window.__sky.room().room.meta.guest || null), WAIT).toBe(null);   // the seat is free again
 });
 
 test('works with a 200 ms round trip: hits, falls and the result', async ({ browser }, info) => {

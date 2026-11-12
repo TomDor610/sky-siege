@@ -20,7 +20,9 @@
   <div class="hbox"><span id="castleTxt" data-i18n="hud.foeCastle">טירת היריב</span><div class="bar"><i id="castleBar" style="background:var(--red)"></i></div></div>
 </div>
 <div id="hudBtns"><button id="pauseBtn" class="hidden" data-i18n="hud.pause">⏸ עצור</button>
-<button id="soundBtn" class="hidden">🔊</button></div>
+<button id="soundBtn" class="hidden">🔊</button><button id="emojiBtn" class="hidden" data-i18n-title="vs.emoji">😀</button></div>
+<div id="emojiBar" class="hidden"></div>
+<div id="vsNet" class="hidden"></div>
 <div id="tip" class="hidden"></div>
 <div id="vsCount" class="hidden"></div>
 <div id="tut" class="hidden"><div id="tutStep" class="tutStep"></div><div id="tutTxt"></div><button id="tutSkip" data-i18n="tut.skip">דלג על ההדרכה</button></div>
@@ -97,6 +99,7 @@
       <button id="setMusic" data-track="settings_music"></button>
       <button id="setLang" data-track="settings_lang"></button>
       <button id="setAnalytics"></button>
+      <button id="setEmoji" data-track="settings_emoji"></button>
     </div>
     <p class="small" data-i18n="set.an.note"></p>
     <div class="row"><button id="setClose" data-track="settings_close" data-i18n="lb.close"></button></div>
@@ -198,6 +201,7 @@
   <div class="card" style="max-width:480px;text-align:center">
     <h1 id="resTitle" data-i18n="res.win">ניצחון!</h1>
     <p class="small" id="resText" style="margin-top:6px;font-size:15px"></p>
+    <div id="vsToast" class="hidden"></div>
     <div class="earn" id="earn"></div>
     <div class="row">
       <button id="againBtn" style="background:var(--red);color:var(--parch);font-weight:900" data-i18n="res.again">שוב לקרב</button>
@@ -206,6 +210,7 @@
     <div class="row" id="copyRow"><button id="copyBtn" data-i18n="res.copy">📋 העתק תוצאה לשיתוף</button></div>
     <div class="row" id="vsResBtns"><button id="vsRematch" class="roomStartBtn" data-i18n="vs.rematch"></button><button id="vsExit" data-i18n="vs.back"></button></div>
     <div class="small" id="vsResMsg"></div>
+    <div id="vsEmojiRow"></div>
     <div class="small" id="copyMsg" style="margin-top:6px;min-height:18px"></div>
   </div>
 </div>

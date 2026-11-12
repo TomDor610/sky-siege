@@ -5,6 +5,7 @@ import {initFlow,loop,start,toMenu,toTitle} from './flow.js';
 import {initAnalytics} from './analytics.js';
 import {initTitle} from './ui/title.js';
 import {handleRoomLink,initRoomUI} from './ui/room-ui.js';
+import {initEmojiUI} from './ui/emoji-ui.js';
 import {initVsUI} from './ui/vs-ui.js';
 import {vsMode} from './progress.js';
 import {roomInfo} from './net/room.js';
@@ -46,6 +47,7 @@ initLeaderboardUI();
 initTitle();
 initRoomUI();
 initVsUI();
+initEmojiUI();
 resize();refreshBuild();
 if(window.__skySkipTitle)toMenu();else toTitle(); // the flag is for tests that start in the workshop
 handleRoomLink();

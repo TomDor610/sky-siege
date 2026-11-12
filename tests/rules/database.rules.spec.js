@@ -182,21 +182,23 @@ test('back to the lobby: the host only', async () => {
 
 // ---------------------------------------------------------------- stage 3: the battle
 const fighting = (over = {}) => ({ ...building({ state: 'battle', battleAt: Date.now() - 1000, ...over }), loadouts: { hana: LOAD(1), gil: LOAD(1) } });
-const PLANE = { t: 1, x: 500, y: 300, p: 0.2, f: 1, s: 260, hp: 80, vz: 0, dd: 0 };
+const PLANE_AT = t => ({ t, x: 500, y: 300, p: 0.2, f: 1, s: 260, hp: 80, vz: 0, dd: 0 });
+// plane states carry the server time (within 10 s), so each use takes the time anew
+const planeNow = () => PLANE_AT(Date.now());
 const CASTLE = { hp: 200, h: '55337773355', d: '101', a: '0,3.14,1', f: 0 };
 
-test('battle: only the host starts it, from the reveal, with a 2-6 s countdown; the host may clear the old battle', async () => {
+test('battle: only the host starts it, from the reveal, at the server\'s time; the host may clear the old battle', async () => {
   await seed('rooms/ABCD', { ...building({ state: 'reveal' }), battle: { rematch: { hana: 1 } } });
   const go = (uid, at) => db(uid).ref('rooms/ABCD/meta').update({ state: 'battle', battleAt: at });
   await assertFails(db('gil').ref('rooms/ABCD/battle').remove());
   await assertSucceeds(db('hana').ref('rooms/ABCD/battle').remove());
-  await assertFails(go('gil', Date.now() + 3000));
-  await assertFails(go('hana', Date.now() + 60000));
+  await assertFails(go('gil', TS));
+  await assertFails(go('hana', Date.now() + 3000));                                  // its own clock: no
   await assertFails(db('hana').ref('rooms/ABCD/meta/state').set('battle'));          // needs the start time
-  await assertSucceeds(go('hana', Date.now() + 3000));
+  await assertSucceeds(go('hana', TS));
   await assertFails(db('hana').ref('rooms/ABCD/battle').remove());                   // not once it started
   await seed('rooms/EFGH', building());
-  await assertFails(db('hana').ref('rooms/EFGH/meta').update({ state: 'battle', battleAt: Date.now() + 3000 }));   // not from the build
+  await assertFails(db('hana').ref('rooms/EFGH/meta').update({ state: 'battle', battleAt: TS }));   // not from the build
 });
 
 test('battle: the seed is set by the host when the build starts', async () => {
@@ -209,9 +211,9 @@ test('battle: the seed is set by the host when the build starts', async () => {
 test('battle: each player writes only their own plane, castle and events, and only during the battle', async () => {
   await seed('rooms/ABCD', fighting());
   const g = db('gil');
-  await assertSucceeds(g.ref('rooms/ABCD/battle/plane/gil').set(PLANE));
-  await assertFails(g.ref('rooms/ABCD/battle/plane/hana').set(PLANE));
-  await assertFails(g.ref('rooms/ABCD/battle/plane/gil').set({ ...PLANE, x: 'far' }));
+  await assertSucceeds(g.ref('rooms/ABCD/battle/plane/gil').set(planeNow()));
+  await assertFails(g.ref('rooms/ABCD/battle/plane/hana').set(planeNow()));
+  await assertFails(g.ref('rooms/ABCD/battle/plane/gil').set({ ...planeNow(), x: 'far' }));
   await assertFails(g.ref('rooms/ABCD/battle/plane/gil').set({ x: 1, y: 2 }));
   await assertSucceeds(g.ref('rooms/ABCD/battle/castle/gil').set(CASTLE));
   await assertFails(g.ref('rooms/ABCD/battle/castle/hana').set(CASTLE));
@@ -225,11 +227,11 @@ test('battle: each player writes only their own plane, castle and events, and on
   await assertFails(g.ref('rooms/ABCD/battle/ev/gil').push().set({ k: 'nuke', t: 1, x: 1, y: 2 }));
   await assertFails(g.ref('rooms/ABCD/battle/ev/gil').push().set({ k: 'b', t: 1, x: 1, y: 2, vx: 'fast' }));
   await assertFails(g.ref('rooms/ABCD/battle/ev/hana').push().set({ k: 'b', t: 1, x: 1, y: 2 }));
-  await assertFails(db('outsider').ref('rooms/ABCD/battle/plane/outsider').set(PLANE));
+  await assertFails(db('outsider').ref('rooms/ABCD/battle/plane/outsider').set(planeNow()));
   await assertFails(db('outsider').ref('rooms/ABCD/battle').get());
   await assertSucceeds(db('hana').ref('rooms/ABCD/battle').get());
   await seed('rooms/EFGH', building({ state: 'reveal' }));
-  await assertFails(db('gil').ref('rooms/EFGH/battle/plane/gil').set(PLANE));
+  await assertFails(db('gil').ref('rooms/EFGH/battle/plane/gil').set(planeNow()));
 });
 
 test('battle: a fall carries the server time and is written once; the final % only at the end', async () => {
@@ -239,7 +241,7 @@ test('battle: a fall carries the server time and is written once; the final % on
   await assertSucceeds(db('gil').ref('rooms/ABCD/battle/fall/gil').set(TS));
   await assertFails(db('gil').ref('rooms/ABCD/battle/fall/gil').set(TS));
   await assertFails(db('gil').ref('rooms/ABCD/battle/final/gil').set(50));            // 1 s into the battle
-  await seed('rooms/EFGH', fighting({ battleAt: Date.now() - 151000 }));
+  await seed('rooms/EFGH', fighting({ battleAt: Date.now() - 154000 }));   // said go 154 s ago = 151 s of battle
   await assertFails(db('gil').ref('rooms/EFGH/battle/final/gil').set(120));
   await assertFails(db('gil').ref('rooms/EFGH/battle/final/hana').set(50));
   await assertSucceeds(db('gil').ref('rooms/EFGH/battle/final/gil').set(42.5));
@@ -255,4 +257,96 @@ test('battle: another battle is asked for this round only; the loadouts stay rea
   await assertFails(db('gil').ref('rooms/ABCD/loadouts/gil').set(LOAD(1)));
   await assertFails(db('gil').ref('rooms/ABCD/meta/state').set('lobby'));
   await assertSucceeds(db('hana').ref('rooms/ABCD/meta').update({ state: 'build', round: 2, buildEndsAt: Date.now() + 60000, seed: 9 }));   // the next build
+});
+
+test('battle: plane states must carry the current time', async () => {
+  await seed('rooms/ABCD', fighting());
+  await assertFails(db('gil').ref('rooms/ABCD/battle/plane/gil').set(PLANE_AT(1)));
+  await assertFails(db('gil').ref('rooms/ABCD/battle/plane/gil').set(PLANE_AT(Date.now() + 60000)));
+  await assertSucceeds(db('gil').ref('rooms/ABCD/battle/plane/gil').set(PLANE_AT(Date.now())));
+});
+
+// ---------------------------------------------------------------- stage 4: drops and emoji
+const ago = s => Date.now() - s * 1000;
+
+test('away: only yourself, with the server time, only in a battle; you can always clear it', async () => {
+  await seed('rooms/ABCD', fighting());
+  await assertFails(db('gil').ref('rooms/ABCD/battle/away/hana').set(TS));
+  await assertFails(db('gil').ref('rooms/ABCD/battle/away/gil').set(12345));
+  await assertSucceeds(db('gil').ref('rooms/ABCD/battle/away/gil').set(TS));
+  await assertSucceeds(db('gil').ref('rooms/ABCD/battle/away/gil').remove());
+  await seed('rooms/EFGH', { ...building(), battle: { away: { gil: ago(5) } } });
+  await assertFails(db('gil').ref('rooms/EFGH/battle/away/gil').set(TS));          // not in a build
+  await assertSucceeds(db('gil').ref('rooms/EFGH/battle/away/gil').remove());
+});
+
+test('technical loss: only after 20 s away, or 25 s without a word; never for yourself; once', async () => {
+  const forfeit = (code, by, who) => db(by).ref(`rooms/${code}/battle/forfeit/${who}`).set(TS);
+  await seed('rooms/ABCD', { ...fighting(), battle: { away: { gil: ago(10) }, plane: { gil: PLANE_AT(ago(10)) } } });
+  await assertFails(forfeit('ABCD', 'hana', 'gil'));                                    // only 10 s
+  await seed('rooms/EFGH', { ...fighting(), battle: { away: { gil: ago(21) }, plane: { gil: PLANE_AT(ago(21)) } } });
+  await assertFails(forfeit('EFGH', 'gil', 'gil'));                                     // not yourself
+  await assertFails(forfeit('EFGH', 'outsider', 'gil'));
+  await assertFails(db('hana').ref('rooms/EFGH/battle/forfeit/gil').set(12345));       // server time only
+  await assertSucceeds(forfeit('EFGH', 'hana', 'gil'));
+  await assertFails(forfeit('EFGH', 'hana', 'gil'));                                    // once
+  // silent: no away mark, but no plane state for 26 s
+  await seed('rooms/IJKL', { ...fighting(), battle: { plane: { gil: PLANE_AT(ago(26)) } } });
+  await assertSucceeds(forfeit('IJKL', 'hana', 'gil'));
+  await seed('rooms/MNPQ', { ...fighting(), battle: { plane: { gil: PLANE_AT(ago(5)) } } });
+  await assertFails(forfeit('MNPQ', 'hana', 'gil'));
+  // never sent anything, 26 s after the start
+  await seed('rooms/RSTU', fighting({ battleAt: ago(29) }));                          // 26 s into the battle
+  await assertSucceeds(forfeit('RSTU', 'gil', 'hana'));
+});
+
+test('emoji: your own, one of 8, server time, at most one every 3 s', async () => {
+  await seed('rooms/ABCD', fighting());
+  const e = (uid, v) => db(uid).ref(`rooms/ABCD/battle/emoji/${uid}`).set(v);
+  await assertFails(db('gil').ref('rooms/ABCD/battle/emoji/hana').set({ e: 1, t: TS }));
+  await assertFails(e('gil', { e: 8, t: TS }));
+  await assertFails(e('gil', { e: 1.5, t: TS }));
+  await assertFails(e('gil', { e: 1, t: 12345 }));
+  await assertFails(e('gil', { e: 1, t: TS, text: 'hi' }));
+  await assertSucceeds(e('gil', { e: 1, t: TS }));
+  await assertFails(e('gil', { e: 2, t: TS }));                                         // too soon
+  await seed('rooms/ABCD/battle/emoji/gil', { e: 1, t: ago(4) });
+  await assertSucceeds(e('gil', { e: 2, t: TS }));
+  await seed('rooms/EFGH', building());
+  await assertFails(db('gil').ref('rooms/EFGH/battle/emoji/gil').set({ e: 1, t: TS }));  // battles only
+});
+
+test('a host who never came back: the guest may close the room; the host may free a gone guest\'s seat', async () => {
+  await seed('rooms/ABCD', { ...fighting(), battle: { away: { hana: ago(10) } } });
+  await assertFails(db('gil').ref('rooms/ABCD').remove());                              // only 10 s
+  await seed('rooms/ABCD/battle/away/hana', ago(21));
+  await assertFails(db('outsider').ref('rooms/ABCD').remove());
+  await assertSucceeds(db('gil').ref('rooms/ABCD').remove());
+  await seed('rooms/EFGH', { ...fighting(), battle: { away: { gil: ago(10) } } });
+  await assertFails(db('hana').ref('rooms/EFGH/players/gil').remove());
+  await assertFails(db('hana').ref('rooms/EFGH/meta/guest').remove());
+  await seed('rooms/EFGH/battle/away/gil', ago(21));
+  await assertSucceeds(db('hana').ref('rooms/EFGH/players/gil').remove());
+  await assertSucceeds(db('hana').ref('rooms/EFGH/meta/guest').remove());
+});
+
+test('a room in use (a guest joined) is not taken over when it gets old', async () => {
+  await seed('rooms/ABCD', both({ createdAt: ago(11 * 60) }));
+  await assertFails(db('mallory').ref('rooms/ABCD/meta').set(newMeta('mallory')));
+});
+
+test('an old room nobody joined can be taken over', async () => {
+  await seed('rooms/EFGH', room({ createdAt: ago(11 * 60) }));
+  await assertSucceeds(db('mallory').ref('rooms/EFGH/meta').set(newMeta('mallory')));
+});
+
+test('any room can be taken over after 6 hours (a forgotten room does not block its code forever)', async () => {
+  await seed('rooms/HJKL', both({ createdAt: ago(6 * 3600 + 60) }));
+  await assertSucceeds(db('mallory').ref('rooms/HJKL/meta').set(newMeta('mallory')));
+});
+
+test('the host cannot drop a guest who is still here from the players list', async () => {
+  await seed('rooms/ABCD', fighting());
+  await assertFails(db('hana').ref('rooms/ABCD/players').set({ hana: { name: 'Hana' } }));
+  await assertSucceeds(db('hana').ref('rooms/ABCD/players').set({ hana: { name: 'Hana' }, gil: { name: 'Gil' } }));
 });

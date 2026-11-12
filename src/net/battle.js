@@ -1,7 +1,8 @@
 // 1v1 battle sync (stage 3). One rule: whatever happens to my things, I decide.
 //  - My plane: I fly it and decide every hit on it. Its state goes out ~15 times a second;
-//    the opponent draws it ~110 ms in the past (more on a slow connection: the measured
-//    delivery time + 60 ms, up to 500 ms), interpolated between two states.
+//    the opponent draws it ~110 ms behind its arrival (more when arrivals are uneven, up to
+//    500 ms), interpolated between two states. The sender's clock is mapped to the local one
+//    from the arrivals themselves, so the two players' server-clock estimates never mix.
 //  - Shots (bombs, crossbow arrows, defense shots, crashes) go out as events. Both sides
 //    simulate them; only the owner of what they hit applies the damage.
 //  - My castle: its strength, heights and defenses go out when they change (at most 5 Hz).
@@ -9,6 +10,12 @@
 //  - End: a fallen castle is announced with the server's time; 1.5 s later both sides look at
 //    the same announcements (two = draw). At time-up each writes its castle's final % and
 //    both compare the same two numbers.
+//  - Drops (stage 4): a player who drops or hides the game is marked away (battle/away, set by
+//    the server on a drop). The friend sees a 20 s countdown; a player who sends nothing for 25 s
+//    counts too. Then the friend declares a technical loss (battle/forfeit), which the rules only
+//    accept when the time has really passed. Shots at an absent player's castle are kept and
+//    applied when they return.
+//  - Emoji: battle/emoji/{uid} = {e, t}, at most one every 3 s, a bubble above the sender's castle.
 import {castleHeightsFor,damageCastle,fortDefs,makeCastle} from '../castle.js';
 import {BOLT_G,BOMBTYPE,BOMB_G,CW,DUEL_CASTLE_HP,DUEL_TIME,PLAYER_DEF_AI,POT_G,WORLD} from '../data.js';
 import {reseedWorld} from '../draw/world.js';
@@ -18,11 +25,13 @@ import {explode,makePlane,spawnPlane} from '../physics.js';
 import {ZERO_UPG} from '../progress.js';
 import {G,setG} from '../state.js';
 import {sfx} from '../sound.js';
-import {$,clamp} from '../util.js';
+import {$,clamp,store} from '../util.js';
 import {viewW} from '../view.js';
-import {battleNet,serverNow} from './room.js';
+import {AWAY_MS,battleNet,markAway,offlineSince,serverNow,setBattlePresence} from './room.js';
 
 const W=WORLD.width,SEND_MS=66,CASTLE_MS=200,AIM_MS=1000,DELAY=110,MAX_DELAY=500,GRACE=1500,FINAL_WAIT=8000;
+export const SILENT_MS=25000,QUIET_MS=3000,EMOJI_MS=3000;
+export const EMOJI=['👋','👍','😂','😮','😅','😡','🔥','🏳️'];
 const r1=v=>Math.round(v*10)/10;
 const castleHP=f=>Math.round(DUEL_CASTLE_HP*(1+0.25*f.walls));
 
@@ -31,7 +40,7 @@ const listeners=[];
 export const onNetChange=f=>listeners.push(f);
 const notify=()=>listeners.forEach(f=>f());
 
-// o: {mine:{build,fort}, theirs:{build,fort}, battleAt, seed, round, oppName}
+// o: {mine:{build,fort}, theirs:{build,fort}, battleAt (when the battle starts, server time), seed, round, oppName}
 export function beginNet(o){
   stopNet();
   const n=battleNet();if(!n)return false;
@@ -44,10 +53,11 @@ export function beginNet(o){
   foe.remote=true;
   S={n,round:o.round,battleAt:o.battleAt,oppName:o.oppName||'',buf:[],seen:new Set(),unsub:[],
     lastSend:0,lastCastle:0,castleKey:'',falls:{},finals:{},rematch:{},fallSent:false,finalSent:false,timeUpAt:0,
-    result:null,hits:0,sent:0,got:0,phase:'count',lat:0,delay:DELAY,counted:false};
+    result:null,hits:0,sent:0,got:0,phase:'count',skew:null,jitter:0,delay:DELAY,counted:false,
+    away:{},forfeit:{},lastT:0,oppGone:false,deadline:0,forfeitTry:0,banner:'',emojiT:0,emojiSentAt:0};
   const ctl={pre,post,emit,countdown,hit:()=>{S.hits++;}};
   setG({duel:true,net:ctl,diff:'medium',state:'play',t:0,end:0,bombs:[],bolts:[],arrows:[],burns:[],parts:[],floaters:[],
-    cam:{x:0,y:WORLD.ground-650},shake:0,killedDefs:0,botDowns:0,mult:1,planes:[me,opp],me,opp,castles:[mine,foe],mine,foe});
+    cam:{x:0,y:WORLD.ground-650},shake:0,killedDefs:0,botDowns:0,mult:1,planes:[me,opp],me,opp,castles:[mine,foe],mine,foe,bubbles:[]});
   spawnPlane(me);spawnPlane(opp);
   G.cam.x=me.x-viewW*0.3;
   const {net,code,opp:ou}=n;
@@ -57,15 +67,28 @@ export function beginNet(o){
     net.watchCastle(code,ou,onCastle),
     net.watchNode(code,'fall',v=>{S.falls=v;}),
     net.watchNode(code,'final',v=>{S.finals=v;}),
-    net.watchNode(code,'rematch',v=>{S.rematch=v;notify();}));
+    net.watchNode(code,'rematch',v=>{S.rematch=v;notify();}),
+    net.watchNode(code,'away',v=>{S.away=v;notify();}),
+    net.watchNode(code,'forfeit',v=>{S.forfeit=v;}),
+    net.watchEmoji(code,ou,onEmoji));
+  setBattlePresence(true);
+  document.addEventListener('visibilitychange',onVisibility);
   notify();
   return true;
 }
 
+// the game hidden (another app, another tab): the friend sees me away until I am back
+function onVisibility(){if(S&&!S.result)markAway(document.hidden);}
+
+// the host's own copy of the start time is its estimate until the server's value arrives
+export function setNetStart(at){if(S&&S.phase==='count')S.battleAt=at;}
+
 export function stopNet(){
   if(!S)return;
   for(const u of S.unsub)try{u();}catch(e){}
-  S=null;$('vsCount').classList.add('hidden');notify();
+  document.removeEventListener('visibilitychange',onVisibility);
+  setBattlePresence(false);
+  showBanner('');S=null;$('vsCount').classList.add('hidden');notify();
 }
 
 // ---- countdown (mode 'vscount' in flow.js): true once the battle starts
@@ -82,9 +105,14 @@ function onPlane(s){
   if(!S||!s)return;S.got++;
   const b=S.buf;
   if(b.length&&s.t<=b[b.length-1].t)return;
+  S.lastT=Math.max(S.lastT,s.t);
   // how late states arrive (sender's server time -> my server time); the view stays behind that
-  const late=Math.max(0,serverNow()-s.t);S.lat=S.lat?S.lat*0.9+late*0.1:late;
-  S.delay=clamp(Math.max(DELAY,S.lat+60),DELAY,MAX_DELAY);
+  // skew = local time minus the sender's time stamp, taken from the quickest arrivals (it drifts
+  // up slowly, so a changed clock is followed); jitter = how much later than that states arrive
+  const d=performance.now()-s.t;
+  S.skew=S.skew===null||d<S.skew?d:S.skew+(d-S.skew)*0.002;
+  S.jitter=S.jitter*0.9+(d-S.skew)*0.1;
+  S.delay=clamp(DELAY+S.jitter*1.5,DELAY,MAX_DELAY);
   b.push({t:s.t,x:W-s.x,y:s.y,p:s.p,f:-s.f,s:s.s,hp:s.hp,vz:s.vz||0,dd:!!s.dd,cr:!!s.cr,ro:s.ro||0,bo:s.bo});
   if(b.length>40)b.splice(0,b.length-40);
 }
@@ -132,7 +160,7 @@ function pre(dt){
   const o=G.opp;
   if(o.hitFlash>0)o.hitFlash-=dt;
   const b=S.buf;if(!b.length)return;
-  const rt=serverNow()-S.delay;
+  const rt=S.skew===null?0:performance.now()-S.skew-S.delay;   // in the sender's time
   let k=b.length-1;while(k>=0&&b[k].t>rt)k--;
   let s;
   if(k<0)s=b[0];
@@ -155,7 +183,8 @@ function pre(dt){
 // ---- per frame: after the simulation (send, end of the battle)
 function post(){
   const now=serverNow(),me=G.me,c=G.mine,{net,code,uid}=S.n;
-  if(now-S.lastSend>=SEND_MS){
+  // (not while my line is down: only the latest state matters, and old ones would be refused)
+  if(now-S.lastSend>=SEND_MS&&!offlineSince()){
     S.lastSend=now;S.sent++;
     net.setPlane(code,uid,{t:Math.round(now),x:Math.round(me.x),y:Math.round(me.y),p:Math.round(me.p*100)/100,f:me.facing,s:Math.round(me.s),hp:Math.ceil(me.hp),vz:Math.round(me.vz),
       dd:me.dead?1:0,cr:me.crashed?1:0,ro:r1(me.roll),bo:me.bombs}).catch(()=>{});
@@ -168,12 +197,37 @@ function post(){
     if(key!==S.castleKey||(aim!==S.aim&&now-S.lastCastle>=AIM_MS)){
       S.castleKey=key;S.aim=aim;S.lastCastle=now;S.sent++;snap.a=aim;net.setCastle(code,uid,snap).catch(()=>{});}
   }
+  presence(now);
   decide(now);
+}
+
+// ---- drops: the friend away or silent, or my own line gone
+function showBanner(text){if(S)S.banner=text;const el=$('vsNet');el.textContent=text;el.classList.toggle('hidden',!text);}
+function presence(now){
+  if(S.result)return;
+  const {net,code,opp}=S.n,awayAt=S.away[opp],last=S.lastT||S.battleAt,silent=now-last>QUIET_MS;
+  S.oppGone=!!awayAt||silent;
+  S.deadline=Math.min(awayAt?awayAt+AWAY_MS:Infinity,silent?last+SILENT_MS:Infinity);
+  G.opp.away=S.oppGone;
+  const off=offlineSince(),secs=ms=>Math.max(0,Math.ceil(ms/1000));
+  let text='';
+  if(off){
+    const left=AWAY_MS-(Date.now()-off);
+    text=t('vs.net.me',{s:secs(left)});
+    if(left<-3000)return settle('techLost',false);        // the friend has been told by now
+  }else if(S.oppGone){
+    text=t(awayAt?'vs.net.away':'vs.net.silent',{s:secs(S.deadline-now)});
+    // the time is up: declare it (the rules check the time too); retried until it is accepted
+    if(now>=S.deadline&&now-S.forfeitTry>1000){S.forfeitTry=now;net.setForfeit(code,opp).catch(()=>{});}
+  }
+  if(text!==S.banner)showBanner(text);
 }
 
 function decide(now){
   if(S.result)return;
   const {uid,opp,net,code}=S.n,end=S.battleAt+DUEL_TIME*1000;
+  if(S.forfeit[opp]!=null)return settle('techWon',false);
+  if(S.forfeit[uid]!=null)return settle('techLost',false);
   const mf=S.falls[uid],tf=S.falls[opp],first=Math.min(mf??Infinity,tf??Infinity);
   if(first<end){
     if(now<first+GRACE)return;
@@ -196,7 +250,8 @@ function decide(now){
 
 function settle(res,timeUp){
   S.result=res;S.timeUp=timeUp;S.phase='end';
-  G.state=res==='draw'?'draw':res;G.timeUp=timeUp;G.winTime=G.t;G.end=G.t+(timeUp?1.5:2.6);
+  showBanner('');G.opp.away=false;setBattlePresence(false);
+  G.state=res==='draw'?'draw':res==='techWon'?'won':res==='techLost'?'lost':res;G.timeUp=timeUp;G.winTime=G.t;G.end=G.t+(timeUp?1.5:2.6);
   if(res==='draw')floater(G.me.x,G.me.y-50,t('vs.fl.draw'));
   notify();
 }
@@ -204,7 +259,7 @@ function settle(res,timeUp){
 // the opponent is gone in the middle of the battle
 export function abortNet(){
   if(!S||S.result)return false;
-  S.result='left';S.phase='end';if(G){G.state='left';G.end=G.t;}
+  S.result='left';S.phase='end';showBanner('');setBattlePresence(false);if(G){G.state='left';G.end=G.t;}
   notify();return true;
 }
 
@@ -217,7 +272,10 @@ function emit(e){
 }
 
 // ---- the result screen
-const TITLE={won:'vs.res.won',lost:'vs.res.lost',draw:'vs.res.draw',left:'vs.res.left'};
+const TITLE={won:'vs.res.won',lost:'vs.res.lost',draw:'vs.res.draw',left:'vs.res.left',techWon:'vs.res.techWon',techLost:'vs.res.techLost'};
+// the result screen is up (flow.js): the screens that follow the match refresh their buttons
+export function resultShown(){notify();}
+
 export function netResult(){
   const res=S?S.result:'left',name=S&&S.oppName||t('room.guestName');
   const mine=G?Math.round(100*Math.max(0,G.mine.hp)/G.mine.max):0,foe=G?Math.round(100*Math.max(0,G.foe.hp)/G.foe.max):0;
@@ -226,6 +284,8 @@ export function netResult(){
     return {res,title:t(TITLE[res]),text:t('vs.res.pointsText',{mine:m,foe:f,name})};
   }
   if(res==='left')return {res,title:t('vs.res.left'),text:t('vs.res.leftText')};
+  if(res==='techWon')return {res,title:t(TITLE.techWon),text:t('vs.res.techWonText',{name})};
+  if(res==='techLost')return {res,title:t(TITLE.techLost),text:t('vs.res.techLostText')};
   if(res==='draw')return {res,title:t('vs.res.draw'),text:t('vs.res.drawText')};
   return {res,title:t(TITLE[res]),text:t(res==='won'?'vs.res.wonText':'vs.res.lostText',{mine,foe,name})};
 }
@@ -235,10 +295,41 @@ export function sendRematch(){
   const {net,code,uid}=S.n;return net.setRematch(code,uid,S.round);
 }
 
+// ---- emoji
+export const emojiMuted=()=>store.get('skysiege_emoji')==='0';
+export const emojiWait=()=>S?Math.max(0,EMOJI_MS-(serverNow()-S.emojiSentAt)):0;
+export function sendEmoji(i){
+  if(!S||!EMOJI[i]||emojiWait()>0)return false;
+  S.emojiSentAt=serverNow();
+  const {net,code,uid}=S.n;net.sendEmoji(code,uid,i).catch(()=>{});
+  bubble('L',i);return true;
+}
+function onEmoji(v){
+  if(!S||!v||typeof v.e!=='number'||!(v.t>S.emojiT))return;
+  S.emojiT=v.t;
+  if(serverNow()-v.t>4000||emojiMuted())return;   // an old one (from before I joined) or muted
+  S.emojiGot=(S.emojiGot||0)+1;
+  bubble('R',v.e);
+}
+// in the battle: a bubble above the sender's castle (drawn in draw/render.js);
+// on the result screen: a short line under the title
+let toastTimer=null;
+function bubble(side,i){
+  if(!G)return;
+  if(G.state==='over'){
+    const el=$('vsToast');el.textContent=(side==='L'?t('room.you'):S.oppName||t('room.guestName'))+' '+EMOJI[i];
+    el.classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.add('hidden'),3000);
+    return;
+  }
+  G.bubbles=G.bubbles.filter(b=>b.side!==side);
+  G.bubbles.push({side,e:EMOJI[i],until:performance.now()+3000});
+}
+
 export function netInfo(){
   if(!S)return {active:false};
   const {uid,opp}=S.n;
-  return {active:true,now:serverNow(),delay:Math.round(S.delay),counted:S.counted,phase:S.phase,result:S.result,round:S.round,timeUp:!!S.timeUp,hits:S.hits,sent:S.sent,got:S.got,
+  return {active:true,now:serverNow(),delay:Math.round(S.delay),skew:S.skew,counted:S.counted,phase:S.phase,result:S.result,round:S.round,timeUp:!!S.timeUp,hits:S.hits,sent:S.sent,got:S.got,
     buffered:S.buf.length,falls:S.falls,finals:S.finals,
-    rematchMine:S.rematch[uid]===S.round,rematchTheirs:S.rematch[opp]===S.round};
+    rematchMine:S.rematch[uid]===S.round,rematchTheirs:S.rematch[opp]===S.round,
+    oppGone:S.oppGone,banner:S.banner,away:S.away,forfeit:S.forfeit,emojiGot:S.emojiGot||0,emojiWait:emojiWait()};
 }

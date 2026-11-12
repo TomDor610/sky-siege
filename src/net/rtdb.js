@@ -6,9 +6,12 @@
 // rooms/{CODE}/players  {uid: {name}}                        participants only; the presence list
 // rooms/{CODE}/ready    {uid: round}                         participants only (0 = not ready)
 // rooms/{CODE}/loadouts {uid: {round, build, fort}}          owner only until the reveal
-// rooms/{CODE}/battle   plane/ev/castle/fall/final/rematch, each {uid: ...}, written by its owner
+// rooms/{CODE}/battle   plane/ev/castle/fall/final/rematch/away/emoji, each {uid: ...}, written by its
+//                       owner; forfeit/{uid} written by the other player
 import {getApp,getApps,initializeApp} from 'firebase/app';
 import {connectDatabaseEmulator,get,getDatabase,goOffline,goOnline,onChildAdded,onDisconnect,onValue,push,ref,remove,runTransaction,serverTimestamp,set,update} from 'firebase/database';
+
+const TAKEN_MS=6*3600*1000;
 
 export function createRtdb(config,emu){
   const app=getApps().length?getApp():initializeApp(config),db=getDatabase(app);
@@ -27,7 +30,8 @@ export function createRtdb(config,emu){
     async createRoom(code,uid,name,ttl){
       const limit=Date.now()+offset-ttl;
       const r=await runTransaction(R(code,'/meta'),cur=>{
-        if(cur&&cur.createdAt>=limit)return undefined;
+        // taken: a live room, or an old one somebody joined (until 6 h; same as the rules)
+        if(cur&&(cur.createdAt>=limit||(cur.guest&&cur.createdAt>=Date.now()+offset-TAKEN_MS)))return undefined;
         return {v:1,host:uid,createdAt:serverTimestamp(),state:'lobby'};
       },{applyLocally:false});
       if(!r.committed)return false;
@@ -57,7 +61,7 @@ export function createRtdb(config,emu){
     async readLoadout(code,uid){return (await get(R(code,`/loadouts/${uid}`))).val();},
     // ---- battle (stage 3)
     clearBattle:code=>remove(R(code,'/battle')),
-    startBattle:(code,at)=>update(R(code,'/meta'),{state:'battle',battleAt:at}),
+    startBattle:code=>update(R(code,'/meta'),{state:'battle',battleAt:serverTimestamp()}),
     setPlane:(code,uid,s)=>set(R(code,`/battle/plane/${uid}`),s),
     pushEvent:(code,uid,e)=>push(R(code,`/battle/ev/${uid}`),e),
     setCastle:(code,uid,c)=>set(R(code,`/battle/castle/${uid}`),c),
@@ -68,6 +72,27 @@ export function createRtdb(config,emu){
     watchEvents:(code,uid,f)=>onChildAdded(R(code,`/battle/ev/${uid}`),s=>f(s.key,s.val()),()=>{}),
     watchCastle:(code,uid,f)=>onValue(R(code,`/battle/castle/${uid}`),s=>f(s.val()),()=>{}),
     watchNode:(code,name,f)=>onValue(R(code,`/battle/${name}`),s=>f(s.val()||{}),()=>{}),
+    // ---- disconnects (stage 4): during a battle a drop marks the player away instead of closing
+    // the room (host) or freeing the seat (guest), so the friend can wait 20 s for them
+    async presenceBattle(code,uid,role){
+      if(role==='host')await onDisconnect(R(code)).cancel();
+      else{await onDisconnect(R(code,`/players/${uid}`)).cancel();await onDisconnect(R(code,'/meta/guest')).cancel();}
+      await onDisconnect(R(code,`/battle/away/${uid}`)).set(serverTimestamp());
+    },
+    async presenceRoom(code,uid,role){
+      await onDisconnect(R(code,`/battle/away/${uid}`)).cancel();
+      await remove(R(code,`/battle/away/${uid}`));
+      if(role==='host')await onDisconnect(R(code)).remove();
+      else{await onDisconnect(R(code,`/players/${uid}`)).remove();await onDisconnect(R(code,'/meta/guest')).remove();}
+    },
+    markAway:(code,uid)=>set(R(code,`/battle/away/${uid}`),serverTimestamp()),
+    // back after a drop: the server has already run the old onDisconnect, so it is set again
+    async markBack(code,uid){await remove(R(code,`/battle/away/${uid}`));await onDisconnect(R(code,`/battle/away/${uid}`)).set(serverTimestamp());},
+    setForfeit:(code,uid)=>set(R(code,`/battle/forfeit/${uid}`),serverTimestamp()),
+    sendEmoji:(code,uid,e)=>set(R(code,`/battle/emoji/${uid}`),{e,t:serverTimestamp()}),
+    watchEmoji:(code,uid,f)=>onValue(R(code,`/battle/emoji/${uid}`),s=>f(s.val()),()=>{}),
+    // the host frees the seat of a guest who never came back
+    async evict(code,uid){await remove(R(code,`/players/${uid}`));await remove(R(code,'/meta/guest'));},
     async leaveSeat(code,uid){
       await onDisconnect(R(code,`/players/${uid}`)).cancel();
       await onDisconnect(R(code,'/meta/guest')).cancel();
