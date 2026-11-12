@@ -41,7 +41,7 @@ function cleanup(){
 function end(reason){cleanup();ended=reason;notify();}
 
 function enter(code,role,uid){
-  room={code,role,uid,meta:null,players:{},ready:{},away:{},offline:0};ended=null;
+  room={code,role,uid,meta:null,players:{},ready:{},away:{},forfeit:{},offline:0};ended=null;
   let wasConnected=false;
   stops.push(net.onConnected(c=>{
     if(c){
@@ -61,6 +61,7 @@ function enter(code,role,uid){
   stops.push(net.watchPlayers(code,p=>{if(room){room.players=p;notify();}}));
   stops.push(net.watchReady(code,r=>{if(room){room.ready=r;notify();}}));
   stops.push(net.watchNode(code,'away',a=>{if(room){room.away=a;notify();}}));
+  stops.push(net.watchNode(code,'forfeit',a=>{if(room){room.forfeit=a;notify();}}));
   if(role==='host')expiry=setTimeout(checkExpiry,ROOM_TTL+1000);
   notify();
 }
@@ -105,7 +106,7 @@ export async function joinRoom(raw){
 
 export async function leaveRoom(reason){
   if(!room)return;
-  const {code,role,uid}=room,closeIt=role==='host'||awayLong(room,room.meta&&room.meta.host);
+  const {code,role,uid}=room,closeIt=role==='host'||goneFor(room,room.meta&&room.meta.host);
   stops.forEach(s=>s());stops=[];
   // a guest whose host never came back closes the room (otherwise it would stay forever)
   try{await timed(closeIt?net.closeRoom(code):net.leaveSeat(code,uid));}catch(e){}
@@ -119,6 +120,8 @@ export const opponentOf=r=>(r.role==='host'?r.meta.guest:r.meta.host);
 export const bothHere=r=>!!(r&&r.meta&&r.meta.guest&&r.players[r.meta.guest]&&r.players[r.meta.host]);
 // away for 20 s or more (by the server's clock)
 export const awayLong=(r,uid)=>!!(r&&uid&&r.away&&r.away[uid]&&serverNow()>=r.away[uid]+AWAY_MS);
+// gone for good: away for 20 s, or already lost by forfeit (same as the rules)
+export const goneFor=(r,uid)=>awayLong(r,uid)||!!(r&&uid&&r.forfeit&&r.forfeit[uid]);
 // both in the room and neither of them gone (a battle drop leaves the seat taken)
 export const bothActive=r=>bothHere(r)&&!(r.away&&(r.away[r.meta.host]||r.away[r.meta.guest]));
 export const offlineSince=()=>(room&&room.offline)||0;
@@ -130,7 +133,7 @@ export async function setBattlePresence(on){
 export async function markAway(on){const r=room;if(r&&inBattle){try{await timed(on?net.markAway(r.code,r.uid):net.markBack(r.code,r.uid));}catch(e){}}}
 // the host frees the seat of a guest who has been gone for 20 s
 export async function dropAwayGuest(){
-  const r=room;if(!r||r.role!=='host'||!awayLong(r,r.meta.guest))return false;
+  const r=room;if(!r||r.role!=='host'||!goneFor(r,r.meta.guest))return false;
   try{await timed(net.evict(r.code,r.meta.guest));return true;}catch(e){return false;}
 }
 export async function startBuild(){

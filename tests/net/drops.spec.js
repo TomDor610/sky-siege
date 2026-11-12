@@ -98,10 +98,15 @@ test('a hidden game counts as away until it is shown again', async ({ browser },
 
 test('a frozen game (nothing sent) is noticed, and after 25 s it is a technical loss', async ({ browser }, info) => {
   test.setTimeout(120_000);
-  const { host, guest } = await toBattle(browser, info);
+  const { host, guest, code } = await toBattle(browser, info);
   await G(host, () => { window.requestAnimationFrame = () => 0; });     // the game loop stops, the line stays
   await expect(banner(guest)).toContainText('החבר לא מגיב', WAIT);
   await expect(title(guest)).toHaveText('ניצחון טכני ⚔', { timeout: 40_000 });
+  await expect(guest.page.locator('#vsRematch')).toBeDisabled();
+  // the host's line is still up (no away mark): its forfeit is enough to close the room on the way out
+  await guest.page.click('#vsExit');
+  await expect(guest.page.locator('#roomMsg')).toHaveText('המארח עזב את החדר', WAIT);
+  await expect.poll(() => readRoom(code), WAIT).toBe(null);
 });
 
 test('a short drop with a 200 ms round trip', async ({ browser }, info) => {

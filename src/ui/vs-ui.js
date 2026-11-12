@@ -7,7 +7,7 @@
 import {t} from '../i18n/index.js';
 import {decodeLoadout,encodeLoadout} from '../net/loadout.js';
 import {abortNet,beginNet,netInfo,onNetChange,sendRematch,setNetStart,stopNet} from '../net/battle.js';
-import {awayLong,backToLobby,battleStart,bothActive,bothHere,dropAwayGuest,leaveRoom,onRoomChange,opponentOf,readLoadouts,reveal,roomInfo,saveLoadout,serverNow,setReady,startBattle,startBuild} from '../net/room.js';
+import {backToLobby,goneFor,battleStart,bothActive,bothHere,dropAwayGuest,leaveRoom,onRoomChange,opponentOf,readLoadouts,reveal,roomInfo,saveLoadout,serverNow,setReady,startBattle,startBuild} from '../net/room.js';
 import {onVsSaved,sanitize,setVsMode,vsMode} from '../progress.js';
 import {build,fort,setBuild,setFort} from '../state.js';
 import {$,store} from '../util.js';
@@ -121,7 +121,8 @@ async function enterBattle(r){
 }
 
 function renderResult(){
-  const {room:r}=roomInfo(),n=netInfo(),here=!!r&&bothActive(r);
+  // after a technical result there is no "another battle": back to the room and start again
+  const {room:r}=roomInfo(),n=netInfo(),tech=n.result==='techWon'||n.result==='techLost',here=!!r&&bothActive(r)&&!tech;
   const b=$('vsRematch');
   b.disabled=!here||!n.active||n.result==='left'||rematchAsked;
   b.textContent=rematchAsked&&here?t('vs.rematchWait'):t('vs.rematch');
@@ -193,7 +194,7 @@ export function initVsUI(){
     const {room:r}=roomInfo();
     stopNet();toVsRoom();revealed=null;showRoom();notify();
     // the friend never came back: the guest closes the room, the host frees the seat
-    if(r&&r.role==='guest'&&awayLong(r,r.meta.host))await leaveRoom('hostLeft');
+    if(r&&r.role==='guest'&&goneFor(r,r.meta.host))await leaveRoom('hostLeft');
     else if(r&&r.role==='host')await dropAwayGuest();
   };
   onVsSaved(()=>{if(!ready)push(false);});

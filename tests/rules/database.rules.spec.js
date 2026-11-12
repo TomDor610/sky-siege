@@ -350,3 +350,15 @@ test('the host cannot drop a guest who is still here from the players list', asy
   await assertFails(db('hana').ref('rooms/ABCD/players').set({ hana: { name: 'Hana' } }));
   await assertSucceeds(db('hana').ref('rooms/ABCD/players').set({ hana: { name: 'Hana' }, gil: { name: 'Gil' } }));
 });
+
+test('a player who already lost by forfeit counts as gone: the seat can be freed, the room closed', async () => {
+  // silent for 25 s (no away mark yet: the server may notice a lost Wi-Fi only after a minute)
+  await seed('rooms/ABCD', { ...fighting(), battle: { forfeit: { gil: ago(2) } } });
+  await assertSucceeds(db('hana').ref('rooms/ABCD/players/gil').remove());
+  await assertSucceeds(db('hana').ref('rooms/ABCD/meta/guest').remove());
+  await seed('rooms/EFGH', { ...fighting(), battle: { forfeit: { hana: ago(2) } } });
+  await assertSucceeds(db('gil').ref('rooms/EFGH').remove());
+  await seed('rooms/HJKL', fighting());                                                  // nobody lost: no
+  await assertFails(db('hana').ref('rooms/HJKL/meta/guest').remove());
+  await assertFails(db('gil').ref('rooms/HJKL').remove());
+});
