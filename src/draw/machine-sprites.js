@@ -18,6 +18,9 @@ import galleonHullUrl from '../assets/galleon/hull.webp';
 import galleonWingUrl from '../assets/galleon/wing.webp';
 import batHullUrl from '../assets/bat/hull.webp';
 import batWingUrl from '../assets/bat/wing.webp';
+import batUpWingUrl from '../assets/bat/upwing.webp';
+import batLowWingUrl from '../assets/bat/lowwing.webp';
+import falconLowWingUrl from '../assets/falcon/lowwing.webp';
 import airHullUrl from '../assets/airship/hull.webp';
 import airWingUrl from '../assets/airship/wing.webp';
 import airBalloonUrl from '../assets/airship/balloon.webp';
@@ -40,6 +43,7 @@ load('stone',stoneUrl,0.35);load('greek',greekUrl,0.35);load('armor',armorUrl);l
 load('falconHull',falconHullUrl,0.3);load('falconWing',falconWingUrl,0.25);
 load('galleonHull',galleonHullUrl,0.3);load('galleonWing',galleonWingUrl,0.25);
 load('batHull',batHullUrl,0.3);load('batWing',batWingUrl,0.25);
+load('batUp',batUpWingUrl,0.3);load('batLow',batLowWingUrl,0.3);load('falconLow',falconLowWingUrl,0.3);
 load('airHull',airHullUrl,0.3);load('airWing',airWingUrl,0.25);load('airBalloon',airBalloonUrl,0.25);
 
 // Layout per style, in machine units. hull: top-left corner and width (height follows the
@@ -58,6 +62,34 @@ const ART={
   airship:{bow:[22,-4],hull:'airHull',wing:'airWing',hx:-30,hy:-9,hw:66,wcx:-6,ww:24,wt:1.4,wy:[-12,-11,4.5],wbase:-4.5,px:-37,stern:-29,rack:{x0:-17,x1:16,top:6,y:11},
     bal:{x:-60,y:-61,w:112,ropes:[[-14,-28,-9.5,-5],[17,-28,12.9,-5],[-30,-31,-27,-4],[33,-31,30,-4]]}},
 };
+// Signature wings: styles listed here draw their own wing shapes instead of the stacked
+// airfoil. Each piece: image key, root point in the image (fraction of its size), where that
+// root sits on the machine, width, flip, and whether it goes behind the hull.
+// Pieces are added in order as the wing count grows; extra ones sit behind and in shade.
+const SIG={
+  falcon:[
+    {k:'falconLow',rx:0.95,ry:0.25,x:8,y:-2,w:44},
+    {k:'falconLow',rx:0.95,ry:0.25,x:2,y:-6,w:40,back:true},
+    {k:'falconLow',rx:0.95,ry:0.25,x:-4,y:-10,w:36,back:true},
+    {k:'falconLow',rx:0.95,ry:0.25,x:-10,y:-14,w:32,back:true},
+  ],
+  bat:[
+    {k:'batUp',rx:0.945,ry:0.91,x:-8,y:-2,w:44,back:true,lit:true},
+    {k:'batLow',rx:0.95,ry:0.25,x:2,y:3,w:42},
+    {k:'batUp',rx:0.945,ry:0.91,x:-15,y:-4,w:40,back:true},
+    {k:'batLow',rx:0.95,ry:0.25,x:-5,y:0,w:38,back:true},
+  ],
+};
+function drawSig(c,set,n,back,damaged){
+  // back pieces: the extra ones (in shade) first, then the lit ones
+  const list=set.slice(0,Math.max(1,Math.min(n,4))).map((P,i)=>({P,i})).filter(o=>!!o.P.back===back);
+  list.sort((a,b)=>(a.P.lit?1:0)-(b.P.lit?1:0)||b.i-a.i);
+  for(const {P,i} of list){
+    const h=hOf(P.k,P.w), shade=i>0&&!P.lit&&back;
+    c.drawImage(shade?DARK[P.k]:img(P.k,damaged),P.x-P.rx*P.w,P.y-P.ry*h,P.w,h);
+  }
+}
+
 const PROP={K:0.32,MAX:40};                // K: depth axis of the spin ellipse; MAX rad/s
 
 /** True when this style should be drawn from sprites (beta flag on, all images loaded). */
@@ -74,12 +106,14 @@ export function drawSpriteMachine(c,b,t,bombsLoaded,damaged){
   const A=ART[b.style||'classic'], greek=b.bombType==='greek';
   const n=Math.min(bombsLoaded,12);
   if(A.bal)drawBalloon(c,A.bal,damaged);
+  const sig=SIG[b.style];
+  if(sig)drawSig(c,sig,b.wings,true,damaged);
   // hull (pilot included in the sprite), then the bomb rack under it
   c.drawImage(img(A.hull,damaged),A.hx,A.hy,A.hw,hOf(A.hull,A.hw));
   const bombs=[];for(let i=0;i<n;i++)bombs.push({row:i%2,col:i>>1});
   drawRack(c,A.rack,bombs,greek);
   drawArmor(c,b.armor);
-  drawWings(c,A,b.wings,damaged);
+  if(sig)drawSig(c,sig,b.wings,false,damaged);else drawWings(c,A,b.wings,damaged);
   drawBow(c,A.bow,b.crossbows||0);
   drawProps(c,A,b,t,damaged);
 }
