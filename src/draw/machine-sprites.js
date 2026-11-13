@@ -69,15 +69,15 @@ const ART={
 const SIG={
   falcon:[
     {k:'falconLow',rx:0.95,ry:0.25,x:8,y:-2,w:44},
-    {k:'falconLow',rx:0.95,ry:0.25,x:2,y:-6,w:40,back:true},
-    {k:'falconLow',rx:0.95,ry:0.25,x:-4,y:-10,w:36,back:true},
-    {k:'falconLow',rx:0.95,ry:0.25,x:-10,y:-14,w:32,back:true},
+    {k:'falconLow',rx:0.95,ry:0.25,x:0,y:-8,w:40,back:true},
+    {k:'falconLow',rx:0.95,ry:0.25,x:-8,y:-14,w:36,back:true},
+    {k:'falconLow',rx:0.95,ry:0.25,x:-16,y:-20,w:32,back:true},
   ],
   bat:[
     {k:'batUp',rx:0.945,ry:0.91,x:-8,y:-2,w:44,back:true,lit:true},
     {k:'batLow',rx:0.95,ry:0.25,x:2,y:3,w:42},
-    {k:'batUp',rx:0.945,ry:0.91,x:-15,y:-4,w:40,back:true},
-    {k:'batLow',rx:0.95,ry:0.25,x:-5,y:0,w:38,back:true},
+    {k:'batUp',rx:0.945,ry:0.91,x:-30,y:0,w:34,back:true,keep:true},
+    {k:'batLow',rx:0.95,ry:0.25,x:-12,y:10,w:36,back:true,keep:true},
   ],
 };
 function drawSig(c,set,n,back,damaged){
@@ -85,7 +85,7 @@ function drawSig(c,set,n,back,damaged){
   const list=set.slice(0,Math.max(1,Math.min(n,4))).map((P,i)=>({P,i})).filter(o=>!!o.P.back===back);
   list.sort((a,b)=>(a.P.lit?1:0)-(b.P.lit?1:0)||b.i-a.i);
   for(const {P,i} of list){
-    const h=hOf(P.k,P.w), shade=i>0&&!P.lit&&back;
+    const h=hOf(P.k,P.w), shade=i>0&&!P.lit&&!P.keep&&back;   // keep: already dark, shading would hide it
     c.drawImage(shade?DARK[P.k]:img(P.k,damaged),P.x-P.rx*P.w,P.y-P.ry*h,P.w,h);
   }
 }
