@@ -10,7 +10,6 @@ const open = page => openGame(page, { title: true });
 const saved = page => expect.poll(async () => (await cloudStatus(page)).status, { timeout: 10_000 }).toBe('saved');
 const events = page => page.evaluate(() => window.__skyAnalytics.map(e => e.params.target || e.name));
 const recordAnalytics = page => page.addInitScript(() => { window.__skyAnalytics = []; });
-const beta = page => page.addInitScript(() => localStorage.setItem('skysiege_beta', '1')); // 1v1 is behind ?beta=1 for now
 const RETURNING = { coins: 300, xp: 400, upg: {}, styles: { classic: true }, unl: {}, wins: { easy: 3, medium: 0, hard: 0 }, duelWins: { easy: 2, medium: 0, hard: 0 }, best: { easy: 30.4 } };
 const seed = (page, prog, extra = {}) => page.addInitScript(([p, x]) => {
   if (localStorage.getItem('skysiege_prog')) return;
@@ -64,12 +63,18 @@ test('returning player: Play uses the last choice; Continue shows progress and o
   expect(errors).toEqual([]);
 });
 
-test('"vs. a Friend" is hidden until ?beta=1, then opens the room screen', async ({ page }) => {
+test('?beta=1 / ?beta=0 still switch the beta flag (for features still being built) and leave the address bar', async ({ page }) => {
   await open(page);
-  await expect(page.locator('#ttlFriend')).toBeHidden();
-  await page.goto('/?beta=1');
-  await page.waitForFunction(() => !!window.__sky);
-  expect(new URL(page.url()).search).toBe('');                       // the flag leaves the address bar
+  await page.goto('/?beta=1'); await page.waitForFunction(() => !!window.__sky);
+  expect(new URL(page.url()).search).toBe('');
+  expect(await page.evaluate(() => localStorage.getItem('skysiege_beta'))).toBe('1');
+  await page.goto('/?beta=0'); await page.waitForFunction(() => !!window.__sky);
+  expect(await page.evaluate(() => localStorage.getItem('skysiege_beta'))).toBe(null);
+  await expect(page.locator('#ttlFriend')).toBeVisible();              // not behind the flag any more
+});
+
+test('"vs. a Friend" is there for everyone and opens the room screen', async ({ page }) => {
+  await open(page);
   await expect(page.locator('#ttlFriend')).toBeVisible();
   await expect(page.locator('#ttlFriend')).toHaveText('🤝 מול חבר');
   await page.click('#ttlFriend');
@@ -168,7 +173,6 @@ test('Settings: sound, language and usage data', async ({ page }) => {
 
 test('analytics: one event per press, and none once turned off', async ({ page }) => {
   await recordAnalytics(page);
-  await beta(page);
   await page.addInitScript(installFakeCloud, {});
   await open(page);
   await saved(page);
@@ -239,7 +243,7 @@ for (const { lang, locale } of LANGS) for (const phone of PHONES) {
           overlaps: els.flatMap((a, i) => els.slice(i + 1).filter(b => hit(a, b)).map(b => `${a.id} / ${b.id}`)),
         };
       });
-      expect(layout).toEqual({ scrolls: false, count: 8, outside: [], overlaps: [] }); // play, continue, 2 modes, google, 3 small
+      expect(layout).toEqual({ scrolls: false, count: 9, outside: [], overlaps: [] }); // play, continue, 2 modes, friend, google, 3 small
       if (lang === 'en') {
         const visible = await page.evaluate(() => [...document.querySelectorAll('#titleScreen *')].filter(e => e.id !== 'ttlLang' && !e.children.length && e.getClientRects().length).map(e => e.textContent));
         expect(visible.filter(s => /[֐-׿]/.test(s))).toEqual([]);
