@@ -12,14 +12,14 @@ import {onVsSaved,sanitize,setVsMode,vsMode} from '../progress.js';
 import {build,fort,setBuild,setFort} from '../state.js';
 import {$,store} from '../util.js';
 import {finish,mode,startNet,toVsBuild,toVsRoom} from '../flow.js';
-import {G} from '../state.js';
+import {G,prog} from '../state.js';
 import {nameOf} from './room-ui.js';
 
 export const REVEAL_MS=4000;   // how long both loadouts are shown before the countdown
 
 let saved=null;        // the player's own build/fort, put back after the 1v1 build
 let round=0,ready=false,timer=null,pushTimer=null,flushed=false,revealed=null,cancelled=false,lastTry=0;
-let goTimer=null,battleRound=0,rematchAsked=false,rematchSent=0;
+let goTimer=null,battleRound=0,rematchAsked=false,rematchSent=0,friendUid=null,friendAdded=false;
 const listeners=[];
 export const onVsChange=f=>listeners.push(f);
 const notify=()=>listeners.forEach(f=>f());
@@ -108,13 +108,14 @@ function loadoutsFor(rd){
 }
 
 async function enterBattle(r){
-  battleRound=r.meta.round;rematchAsked=false;rematchSent=0;clearTimeout(goTimer);
+  battleRound=r.meta.round;rematchAsked=false;rematchSent=0;friendAdded=false;clearTimeout(goTimer);
   let rev=revealed;
   if(!rev||rev.round!==r.meta.round||!rev.mine){
     try{rev=await loadoutsFor(r.meta.round);revealed=rev;}
     catch(e){battleRound=0;setTimeout(onRoom,1000);return;}            // slow line: try again
   }
   const now=roomInfo().room;if(!now||now.meta.state!=='battle'||now.meta.round!==battleRound)return;
+  friendUid=opponentOf(r);
   if(!beginNet({mine:rev.mine,theirs:rev.theirs,battleAt:battleStart(r.meta),seed:r.meta.seed,round:r.meta.round,oppName:nameOf(r,opponentOf(r))}))return;
   $('roomScreen').classList.add('hidden');
   startNet();renderResult();
@@ -126,7 +127,10 @@ function renderResult(){
   const b=$('vsRematch');
   b.disabled=!here||!n.active||n.result==='left'||rematchAsked;
   b.textContent=rematchAsked&&here?t('vs.rematchWait'):t('vs.rematch');
-  $('vsResMsg').textContent=!here||n.result==='left'?t('vs.oppLeft'):n.rematchTheirs?t('vs.oppRematch'):'';
+  $('vsResMsg').textContent=!(r&&bothActive(r))||n.result==='left'?t('vs.oppLeft'):n.rematchTheirs?t('vs.oppRematch'):friendAdded?t('vs.friendAdded'):'';
+  // the friend is not in my friends list yet: one tap adds them (records show on the friends screen)
+  const opp=r&&opponentOf(r)||friendUid;
+  $('vsFriendRow').classList.toggle('show',!!opp&&!(prog.friends||[]).includes(opp));
   // both asked for another battle: the host starts the next blind build
   if(n.active&&n.rematchMine&&n.rematchTheirs&&r&&r.role==='host'&&rematchSent!==n.round){rematchSent=n.round;startBuild().catch(()=>{});}
 }
@@ -184,6 +188,14 @@ async function onRoom(){
 export function initVsUI(){
   onRoomChange(onRoom);
   onNetChange(()=>{if(onResult())renderResult();});
+  $('vsAddFriend').onclick=async()=>{
+    const {room:r}=roomInfo(),opp=r&&opponentOf(r)||friendUid;if(!opp)return;
+    // loaded on use: importing it at the top would change the order modules start in
+    const {addFriend}=await import('../leaderboard/index.js');
+    const res=addFriend({uid:opp});
+    friendAdded=res==='added'||res==='already';
+    renderResult();
+  };
   $('vsRematch').onclick=async()=>{
     if(rematchAsked)return;rematchAsked=true;renderResult();
     try{await sendRematch();}catch(e){rematchAsked=false;}

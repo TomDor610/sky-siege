@@ -208,7 +208,7 @@ body.vsReady #tabMachine .grid{pointer-events:none;opacity:.55}
 #vsResBtns,#vsResMsg{display:none}
 body.vsResult #vsResBtns{display:flex}
 body.vsResult #vsResMsg{display:block;margin-top:6px;min-height:18px}
-body.vsResult #againBtn,body.vsResult #rebuildBtn,body.vsResult #copyRow,body.vsResult #copyMsg,body.vsResult #earn{display:none}
+body.vsResult #againBtn,body.vsResult #rebuildBtn,body.vsResult #copyRow,body.vsResult #copyMsg{display:none}
 #roomMsg.roomAlert{font-size:15px;font-weight:700;color:var(--red);background:rgba(163,52,31,.09);border:1.5px solid rgba(163,52,31,.45);border-radius:8px;padding:6px 10px;margin:8px 0}
 /* 1v1 drops and emoji (stage 4) */
 #vsNet{position:fixed;left:50%;top:calc(var(--btnTop,64px) + 2px);transform:translateX(-50%);z-index:7;max-width:92vw;text-align:center;background:rgba(163,52,31,.93);color:var(--parch);font-weight:700;font-size:15px;padding:6px 14px;border-radius:8px;pointer-events:none;box-shadow:0 2px 8px rgba(59,42,26,.3)}
@@ -223,3 +223,23 @@ html[dir=ltr] #emojiBar{left:auto;right:10px}
 body.vsResult #vsEmojiRow{display:flex}
 #vsToast{font-size:20px;font-weight:700;margin-top:6px}
 #vsToast.hidden{display:none}
+/* 1v1 rewards and records (stage 5) */
+#vsFriendRow{display:none}
+body.vsResult #vsFriendRow.show{display:flex}
+.earn .vsWhy span:first-child{color:var(--red);font-size:13px}
+.earn .vsRecord span:first-child{font-weight:700}
+.lbRec{font-size:12px;font-weight:400;color:var(--ink2);white-space:nowrap}
+/* 1v1 result on a landscape phone: the reward lines in two columns, tighter, and the card
+   scrolls if it still does not fit, so the buttons are always reachable */
+@media (orientation:landscape) and (max-height:500px){
+  body.vsResult #resultScreen .card{max-width:640px!important;max-height:calc(100vh - 16px);overflow-y:auto;padding:8px 14px}
+  body.vsResult #resTitle{font-size:22px;margin:0}
+  body.vsResult #resText{margin-top:2px!important;font-size:13px!important}
+  body.vsResult .earn{display:grid;grid-template-columns:1fr 1fr;column-gap:22px;max-width:600px;font-size:13px;margin-top:4px}
+  body.vsResult .earn div{padding:1px 0}
+  body.vsResult .earn .tot{font-size:15px}
+  body.vsResult .earn .vsWhy,body.vsResult .earn .vsRecord{grid-column:1/-1}
+  body.vsResult #resultScreen .row{margin-top:6px}
+  body.vsResult #vsEmojiRow{margin-top:2px}
+  body.vsResult #vsEmojiRow .emo{font-size:18px;padding:3px 5px}
+}

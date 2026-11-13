@@ -140,3 +140,16 @@ test('users/{uid} still accepts the nickname and friends list', async () => {
   await assertSucceeds(setDoc(doc(me, 'users/alice'), save({ prog: { ...save().prog, nick: 'Tom', friends: ['bob'] } })));
   await assertFails(setDoc(doc(me, 'users/alice'), save({ prog: { ...save().prog, nick: 'x'.repeat(40) } })));
 });
+
+test('users/{uid} accepts the 1v1 records and day counters, within limits (stage 5)', async () => {
+  const ref = doc(db('alice'), 'users/alice');
+  const vs = { bob: { n: 'Bob', w: 3, l: 1, d: 0, s: 2, b: 3, t: 1 } }, day = { d: '2026-11-13', c: 420, f: { bob: 2 } };
+  await assertSucceeds(setDoc(ref, { ...save(), prog: { ...save().prog, vs, vsDay: day } }));
+  await assertSucceeds(setDoc(ref, save()));                                                        // still optional
+  const many = Object.fromEntries(Array.from({ length: 201 }, (_, i) => ['f' + i, { n: '', w: 0, l: 0, d: 0, s: 0, b: 0, t: 0 }]));
+  await assertFails(setDoc(ref, { ...save(), prog: { ...save().prog, vs: many } }));               // over 200 friends
+  await assertFails(setDoc(ref, { ...save(), prog: { ...save().prog, vs: 'lots' } }));
+  await assertFails(setDoc(ref, { ...save(), prog: { ...save().prog, vsDay: { ...day, c: 5000 } } })); // over the daily cap
+  await assertFails(setDoc(ref, { ...save(), prog: { ...save().prog, vsDay: { ...day, x: 1 } } }));
+  await assertFails(setDoc(ref, { ...save(), prog: { ...save().prog, vsDay: { ...day, d: 'today' } } }));
+});

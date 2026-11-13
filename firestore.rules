@@ -20,9 +20,16 @@ service cloud.firestore {
         && d.v is int && d.v >= 1 && d.v < 100
         && d.prog is map && d.build is map && d.fort is map
         && d.prog.keys().hasOnly(['coins', 'coinsEarned', 'coinsSpent', 'epoch', 'upg', 'xp',
-                                  'styles', 'unl', 'wins', 'duelWins', 'best', 'nick', 'friends'])
+                                  'styles', 'unl', 'wins', 'duelWins', 'best', 'nick', 'friends',
+                                  'vs', 'vsDay'])
         && (!('nick' in d.prog) || (d.prog.nick is string && d.prog.nick.size() <= 16))
         && (!('friends' in d.prog) || (d.prog.friends is list && d.prog.friends.size() <= 200))
+        // 1v1 (stage 5): the record against each friend, and the day's reward counters
+        && (!('vs' in d.prog) || (d.prog.vs is map && d.prog.vs.size() <= 200))
+        && (!('vsDay' in d.prog) || (d.prog.vsDay is map && d.prog.vsDay.keys().hasOnly(['d', 'c', 'f'])
+            && d.prog.vsDay.d is string && d.prog.vsDay.d.size() == 10
+            && d.prog.vsDay.c is number && d.prog.vsDay.c >= 0 && d.prog.vsDay.c <= 1500
+            && d.prog.vsDay.f is map && d.prog.vsDay.f.size() <= 200))
         && d.prog.coins is number && d.prog.xp is number
         && d.prog.upg is map && d.prog.styles is map && d.prog.unl is map
         && d.prog.wins is map && d.prog.duelWins is map && d.prog.best is map

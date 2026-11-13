@@ -45,11 +45,13 @@ function renderMe(){
   $('lbInviteBtn').disabled=!onBoard();
 }
 
+// the 1v1 record against a friend, after the name (friends tab)
+const vsTag=r=>{const v=tab==='friends'&&prog.vs&&prog.vs[r.uid];return v?` <span class="lbRec">${esc(t('lb.record',{w:v.w,l:v.l}))}</span>`:'';};
 function cells(r,place){
   const rank=`<span class="num" title="${esc(rankName(r.rank))}">${r.rank}</span>`;
-  if(view==='duel')return `<td class="num">${place}</td><td class="nm">${esc(r.name)}</td><td>${rank}</td><td class="num">${r.duelWins}</td><td></td>`;
+  if(view==='duel')return `<td class="num">${place}</td><td class="nm">${esc(r.name)}${vsTag(r)}</td><td>${rank}</td><td class="num">${r.duelWins}</td><td></td>`;
   const lvl=r.lvl&&r.lvl[view]||0,best=r.best&&r.best[view]||0;
-  return `<td class="num">${place}</td><td class="nm">${esc(r.name)}</td><td>${rank}</td><td class="num">${lvl}</td><td class="num">${best?esc(t('hud.seconds',{s:best.toFixed(1)})):'—'}</td>`;
+  return `<td class="num">${place}</td><td class="nm">${esc(r.name)}${vsTag(r)}</td><td>${rank}</td><td class="num">${lvl}</td><td class="num">${best?esc(t('hud.seconds',{s:best.toFixed(1)})):'—'}</td>`;
 }
 
 async function renderList(){

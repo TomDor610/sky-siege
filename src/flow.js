@@ -1,6 +1,7 @@
 // Screen flow: start, pause, finish/results and the main loop.
 import {castleSpec} from './castle.js';
 import {RANK_MAX} from './data.js';
+import {DAILY_CAP as DAILY} from './net/rewards.js';
 import {paperOverlay} from './draw/paper.js';
 import {render} from './draw/render.js';
 import {drawTitleScene} from './draw/title-scene.js';
@@ -17,7 +18,8 @@ import {$} from './util.js';
 import {ctx,cv,resize} from './view.js';
 import {duckMusic,setMusicMode,sfx,soundFrame} from './sound.js';
 import {syncResume} from './sync/index.js';
-import {netResult,resultShown} from './net/battle.js';
+import {applyReward,netResult,resultShown} from './net/battle.js';
+import {VS_MULT} from './net/rewards.js';
 export let mode='title',last=0,tipTimer=0;
 export function show(id){['titleScreen','buildScreen','resultScreen','pauseScreen'].forEach(s=>$(s).classList.toggle('hidden',s!==id));}
 export function setPlayUI(on){$('emojiBtn').classList.add('hidden');$('emojiBar').classList.add('hidden');['hud','pauseBtn','soundBtn'].forEach(s=>$(s).classList.toggle('hidden',!on));$('touch').classList.toggle('hidden',!(on&&isTouch));$('shootBtn').classList.toggle('hidden',!(build.crossbows>0));}
@@ -47,11 +49,29 @@ export function startNet(){
 }
 // the room screen over an empty page (back from a 1v1 result)
 export function toVsRoom(){vsOff();setMusicMode('menu');mode='menu';setG(null);setPlayUI(false);show(null);resize();}
+// the reward lines of a 1v1 battle (stage 5): as in a duel, plus why a reward was cut
+function vsEarnHtml(rw){
+  if(!rw||!rw.record)return '';
+  let html='';for(const l of rw.lines)html+=`<div><span>${t(l.key,l.vars)}</span><span>${l.coins}</span></div>`;
+  html+=`<div><span>${t('vs.res.mult')}</span><span>×${VS_MULT.toFixed(1)}</span></div>`;
+  const name=rw.name||t('room.guestName');
+  const why=rw.reason==='short'?t('vs.rew.short'):rw.reason==='noBombs'?t('vs.rew.noBombs'):rw.reason==='half'?t('vs.rew.half',{n:rw.game,name})
+    :rw.reason==='limit'?t('vs.rew.limit',{n:rw.game,name}):rw.reason==='cap'?t('vs.rew.cap',{cap:DAILY}):'';
+  if(why)html+=`<div class="vsWhy" style="border:none"><span>${why}</span><span></span></div>`;
+  html+=`<div class="tot"><span>${t('res.earned')}</span><span>+${rw.coins} 🪙</span></div><div style="border:none"><span>${t('res.balance')}</span><span>${prog.coins} 🪙</span></div>`;
+  html+=`<div style="border:none"><span>${t('res.xp')}</span><span>+${rw.xp} ⭐</span></div>`;
+  if(rw.r1>rw.r0)html+=`<div class="tot" style="color:var(--green)"><span>${t('res.rankUp',{r:rw.r1,name:rankName(rw.r1)})}</span><span>+${5*(rw.r1-rw.r0)} 🔨</span></div>`;
+  const r=rw.record,rec=t(r.d?'vs.rec.lineDraws':'vs.rec.line',{name,w:r.w,l:r.l,d:r.d});
+  const streak=r.s>1?' · '+t('vs.rec.streakW',{n:r.s}):r.s<-1?' · '+t('vs.rec.streakL',{n:-r.s}):'';
+  html+=`<div class="vsRecord" style="border:none"><span>${rec}${streak}</span><span></span></div>`;
+  return html;
+}
 function netFinish(){
   const v=netResult();
   sfx(v.res==='won'||v.res==='techWon'?'win':v.res==='lost'||v.res==='techLost'?'lose':'launch');setMusicMode('menu');duckMusic(false);
   mode='result';setPlayUI(false);$('tip').classList.add('hidden');$('vsCount').classList.add('hidden');
-  $('resTitle').textContent=v.title;$('resText').textContent=v.text;$('earn').innerHTML='';$('copyMsg').textContent='';
+  $('resTitle').textContent=v.title;$('resText').textContent=v.text;$('copyMsg').textContent='';
+  $('earn').innerHTML=vsEarnHtml(applyReward());
   document.body.classList.add('vsResult');show('resultScreen');
   if(G)G.state='over';
   resultShown();

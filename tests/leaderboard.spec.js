@@ -159,3 +159,16 @@ test.describe('in English', () => {
     expect(/[֐-׿]/.test(hebrew)).toBe(false);
   });
 });
+
+test('Friends: the 1v1 record against a friend is shown next to the name (stage 5)', async ({ page }) => {
+  await seedLocal(page, { ...ME, nick: 'Tom', vs: { DAN444444: { n: 'Dan', w: 4, l: 2, d: 0, s: 1, b: 2, t: 1 } } });
+  await page.addInitScript(installFakeCloud, { lb: OTHERS });
+  const errors = await openGame(page);
+  await ready(page);
+  await openLb(page);
+  await expect(page.locator('#lbBody tr[data-uid="DAN444444"] td.nm')).toHaveText('Dan מאזן 4–2');
+  await expect(page.locator('#lbBody tr.me td.nm')).toHaveText('Tom');                     // no record against myself
+  await page.click('#lbTabs button[data-lbtab="all"]');
+  await expect(page.locator('#lbBody tr[data-uid="DAN444444"] td.nm')).toHaveText('Dan');   // only on the friends tab
+  expect(errors).toEqual([]);
+});

@@ -6,8 +6,11 @@
 //   - otherwise every counter takes the max: coinsEarned, coinsSpent (coins = earned - spent),
 //     xp, upgrade levels, wins per difficulty; styles/unlocks are OR-ed;
 //   - best campaign times take the MIN (a lower time is a better record);
-//   - nickname: this device's if set, else the cloud's; friends: union of both lists.
+//   - nickname: this device's if set, else the cloud's; friends: union of both lists;
+//   - 1v1 records against each friend (vs) and the day's 1v1 counters (vsDay): see net/rewards.js.
 // build/fort are choices, not progress: the most recently edited one wins (buildAt).
+
+import {mergeDay,mergeRecords} from '../net/rewards.js';
 
 const isObj=v=>v&&typeof v==='object'&&!Array.isArray(v);
 const num=v=>(typeof v==='number'&&isFinite(v)?v:0);
@@ -48,6 +51,9 @@ export function mergeProg(localRaw,remoteRaw){
   m.best=minTimes(a.best,b.best);
   m.nick=a.nick||b.nick;                                   // a chosen nickname is never lost
   m.friends=[...new Set([...a.friends,...b.friends])].slice(0,200); // friends from both devices
+  // only saves that played a 1v1 have these (older rules in the cloud do not accept them otherwise)
+  if(isObj(a.vs)||isObj(b.vs))m.vs=mergeRecords(a.vs,b.vs);
+  const day=mergeDay(a.vsDay,b.vsDay);if(day)m.vsDay=day;else delete m.vsDay;
   return m;
 }
 

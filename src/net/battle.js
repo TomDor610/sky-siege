@@ -16,14 +16,16 @@
 //    accept when the time has really passed. Shots at an absent player's castle are kept and
 //    applied when they return.
 //  - Emoji: battle/emoji/{uid} = {e, t}, at most one every 3 s, a bubble above the sender's castle.
+//  - Rewards and the record against the friend (stage 5): applyReward(), rules in net/rewards.js.
 import {castleHeightsFor,damageCastle,fortDefs,makeCastle} from '../castle.js';
 import {BOLT_G,BOMBTYPE,BOMB_G,CW,DUEL_CASTLE_HP,DUEL_TIME,PLAYER_DEF_AI,POT_G,WORLD} from '../data.js';
 import {reseedWorld} from '../draw/world.js';
 import {floater,spark} from '../effects.js';
 import {t} from '../i18n/index.js';
 import {explode,makePlane,spawnPlane} from '../physics.js';
-import {ZERO_UPG} from '../progress.js';
-import {G,setG} from '../state.js';
+import {earnCoins,myRank,saveProg,ZERO_UPG} from '../progress.js';
+import {addToRecord,dayKey,outcomeOf,vsReward} from './rewards.js';
+import {G,prog,setG} from '../state.js';
 import {sfx} from '../sound.js';
 import {$,clamp,store} from '../util.js';
 import {viewW} from '../view.js';
@@ -54,7 +56,8 @@ export function beginNet(o){
   S={n,round:o.round,battleAt:o.battleAt,oppName:o.oppName||'',buf:[],seen:new Set(),unsub:[],
     lastSend:0,lastCastle:0,castleKey:'',falls:{},finals:{},rematch:{},fallSent:false,finalSent:false,timeUpAt:0,
     result:null,hits:0,sent:0,got:0,phase:'count',skew:null,jitter:0,delay:DELAY,counted:false,
-    away:{},forfeit:{},lastT:0,oppGone:false,deadline:0,forfeitTry:0,banner:'',emojiT:0,emojiSentAt:0};
+    away:{},forfeit:{},lastT:0,oppGone:false,deadline:0,forfeitTry:0,banner:'',emojiT:0,emojiSentAt:0,
+    myBombs:0,oppBombs:0,reward:null};
   const ctl={pre,post,emit,countdown,hit:()=>{S.hits++;}};
   setG({duel:true,net:ctl,diff:'medium',state:'play',t:0,end:0,bombs:[],bolts:[],arrows:[],burns:[],parts:[],floaters:[],
     cam:{x:0,y:WORLD.ground-650},shake:0,killedDefs:0,botDowns:0,mult:1,planes:[me,opp],me,opp,castles:[mine,foe],mine,foe,bubbles:[]});
@@ -123,7 +126,7 @@ function onEvent(id,e){
   const age=clamp((serverNow()-e.t)/1000,0,0.3),x=W-e.x,y=e.y,vx=-(e.vx||0),vy=e.vy||0;
   const fly=(o,g)=>{o.x+=o.vx*age;o.y+=o.vy*age+0.5*g*age*age;o.vy+=g*age;return o;};
   switch(e.k){
-    case 'b':sfx('drop',{x});G.bombs.push(fly({owner:'R',bt:G.opp.bt,mul:1,x,y,vx,vy},BOMB_G));break;
+    case 'b':S.oppBombs++;sfx('drop',{x});G.bombs.push(fly({owner:'R',bt:G.opp.bt,mul:1,x,y,vx,vy},BOMB_G));break;
     case 'a':sfx('crossbow',{x});G.arrows.push(fly({owner:'R',mul:1,x,y,vx,vy,life:1.4-age},120));break;
     case 'D':sfx('ballista',{x});G.bolts.push(fly({owner:'R',kind:'bolt',x,y,vx,vy,life:3-age,dmg:e.dm},BOLT_G));break;
     case 'A':sfx('archers',{x});G.bolts.push(fly({owner:'R',kind:'arrow',x,y,vx,vy,life:2-age,dmg:e.dm},BOLT_G));break;
@@ -266,6 +269,7 @@ export function abortNet(){
 // ---- outgoing events, from physics.js / castle.js (my coordinates)
 function emit(e){
   const {net,code,uid}=S.n;S.sent++;
+  if(e.k==='b')S.myBombs++;
   const o={t:Math.round(serverNow())};
   for(const k in e)o[k]=typeof e[k]==='number'?Math.round(e[k]*100)/100:e[k];
   net.pushEvent(code,uid,o).catch(()=>{});
@@ -288,6 +292,28 @@ export function netResult(){
   if(res==='techLost')return {res,title:t(TITLE.techLost),text:t('vs.res.techLostText')};
   if(res==='draw')return {res,title:t('vs.res.draw'),text:t('vs.res.drawText')};
   return {res,title:t(TITLE[res]),text:t(res==='won'?'vs.res.wonText':'vs.res.lostText',{mine,foe,name})};
+}
+
+// ---- rewards and the record (stage 5): worked out once per battle, when the result is shown
+export function matchStats(){
+  const pct=c=>Math.round(100*Math.max(0,c.hp)/c.max);
+  const timeUp=S.timeUp&&typeof S.myFinal==='number'&&typeof S.theirFinal==='number';
+  return {result:S.result,secs:G?G.winTime||G.t:0,myBombs:S.myBombs,oppBombs:S.oppBombs,
+    dmgPct:timeUp?Math.round(100-S.theirFinal):100-pct(G.foe),keptPct:timeUp?Math.round(S.myFinal):pct(G.mine),defs:G.killedDefs,downs:G.botDowns};
+}
+export function applyReward(){
+  if(!S||!G)return null;
+  if(S.reward)return S.reward;
+  const m=matchStats(),opp=S.n.opp,r0=myRank();
+  const rw=vsReward(m,prog.vsDay,opp,dayKey());
+  let rec=null;
+  if(outcomeOf(m.result)){
+    earnCoins(rw.coins);prog.xp=(prog.xp||0)+rw.xp;prog.vsDay=rw.day;
+    prog.vs=Object.assign({},prog.vs);prog.vs[opp]=rec=addToRecord(prog.vs[opp],m.result,S.oppName,Date.now());
+    saveProg();
+  }
+  S.reward={...rw,record:rec,name:S.oppName||'',r0,r1:myRank()};
+  return S.reward;
 }
 
 export function sendRematch(){
@@ -328,7 +354,7 @@ function bubble(side,i){
 export function netInfo(){
   if(!S)return {active:false};
   const {uid,opp}=S.n;
-  return {active:true,now:serverNow(),delay:Math.round(S.delay),skew:S.skew,counted:S.counted,phase:S.phase,result:S.result,round:S.round,timeUp:!!S.timeUp,hits:S.hits,sent:S.sent,got:S.got,
+  return {active:true,reward:S.reward,myBombs:S.myBombs,oppBombs:S.oppBombs,now:serverNow(),delay:Math.round(S.delay),skew:S.skew,counted:S.counted,phase:S.phase,result:S.result,round:S.round,timeUp:!!S.timeUp,hits:S.hits,sent:S.sent,got:S.got,
     buffered:S.buf.length,falls:S.falls,finals:S.finals,
     rematchMine:S.rematch[uid]===S.round,rematchTheirs:S.rematch[opp]===S.round,
     oppGone:S.oppGone,banner:S.banner,away:S.away,forfeit:S.forfeit,emojiGot:S.emojiGot||0,emojiWait:emojiWait()};

@@ -131,7 +131,7 @@ test('a downed plane falls on both screens and comes back 4 s later', async ({ b
   expect(await G(guest, () => window.__sky.G.opp.x)).toBeGreaterThan(W / 2);    // back above the host's castle, on the right
 });
 
-test('a castle falls: the friend wins on both screens, no coins; then both ask for another battle', async ({ browser }, info) => {
+test('a castle falls: the friend wins on both screens (a short battle: no coins); then both ask for another battle', async ({ browser }, info) => {
   const { host, guest } = await toBattle(browser, info);
   const coins = await G(host, () => window.__sky.prog.coins);
   await fell(guest);
@@ -140,7 +140,7 @@ test('a castle falls: the friend wins on both screens, no coins; then both ask f
   await expect(host.page.locator('#resText')).toContainText('נפלה');
   for (const p of [host, guest]) {
     await expect(p.page.locator('#againBtn')).toBeHidden();
-    await expect(p.page.locator('#earn')).toBeHidden();
+    await expect(p.page.locator('#earn')).toContainText('קרב קצר מ-45 שניות: בלי פרס');   // stage 5: a 2-second battle pays nothing
   }
   expect(await G(host, () => window.__sky.prog.coins)).toBe(coins);
   await host.page.click('#vsRematch');
