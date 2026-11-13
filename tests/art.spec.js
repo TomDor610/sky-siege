@@ -3,10 +3,10 @@ import { readFileSync } from 'node:fs';
 import { runBattle } from './helpers/autopilot.js';
 import { openGame } from './helpers/page.js';
 
-// The 2.5D art pass: the Classic machine is drawn from sprites when beta is on (?beta=1).
+// The 2.5D art pass: the Classic machine is drawn from sprites only when localStorage skysiege_sprites=1 (paused work, off for everyone).
 // Drawing must never change the simulation, and every part count must draw without errors.
 const baseline = JSON.parse(readFileSync(new URL('./baseline.json', import.meta.url), 'utf8'));
-const beta = page => page.addInitScript(() => localStorage.setItem('skysiege_beta', '1'));
+const beta = page => page.addInitScript(() => localStorage.setItem('skysiege_sprites', '1'));
 const frames = (page, n) => page.evaluate(n => new Promise(r => { const f = () => (--n ? requestAnimationFrame(f) : r()); requestAnimationFrame(f); }), n);
 
 test('beta sprites: autopilot still matches baseline', async ({ page }) => {
