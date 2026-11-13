@@ -154,7 +154,7 @@ export function drawPreview(time){
   pctx.strokeStyle='rgba(107,79,51,.25)';pctx.lineWidth=1;
   for(let x=10;x<w;x+=20){pctx.beginPath();pctx.moveTo(x,0);pctx.lineTo(x,h);pctx.stroke();}
   const show=Object.assign({},build,{style:previewStyle||build.style});const s=stats(show,upgNow());
-  pctx.save();const air=show.style==='airship',tall=show.style==='galleon'||show.style==='bat';const sc=Math.min(w/125,h/(air?95:tall?76:60));
+  pctx.save();const air=show.style==='airship',tall=show.style!=='falcon';const sc=Math.min(w/125,h/(air?95:tall?76:60));
   pctx.translate(w/2+4,h/2+(air?19*sc:tall?7*sc:2*sc)+Math.sin(time*2)*3);pctx.scale(sc,sc);
   drawMachine(pctx,show,time,s.bombsMax,false);pctx.restore();
   pctx.fillStyle='rgba(59,42,26,.75)';pctx.font='italic 12px "Frank Ruhl Libre",serif';pctx.textAlign='left';
