@@ -1,5 +1,6 @@
 // Hand-painted sprites for the 2.5D art pass (docs/ART_2.5D brief). all five styles have
-// sprites so far, and they show only in beta (?beta=1) until the new look is approved.
+// sprites so far. The 2.5D pass is paused: they show only with localStorage skysiege_sprites=1
+// (not tied to ?beta=1), and the images are not even loaded otherwise.
 // Each style brings its own hull and wing; propeller, bombs, rack and armor are shared.
 // Units match drawMachine: nose to the right, y down, the hull about 80 units long.
 // Drawing only: no game state is read or written and Math.random is never used.
@@ -22,9 +23,10 @@ import airWingUrl from '../assets/airship/wing.webp';
 import airBalloonUrl from '../assets/airship/balloon.webp';
 
 const IMG={}, DARK={};
-let loaded=0, total=0, beta=null;
+let loaded=0, total=0;
+const ON=(()=>{try{return store.get('skysiege_sprites')==='1';}catch(e){return false;}})();
 function load(key,url,dark){
-  if(typeof Image==='undefined')return;
+  if(!ON||typeof Image==='undefined')return;
   total++;const im=new Image();
   im.onload=()=>{IMG[key]=im;if(dark)DARK[key]=darken(im,dark);loaded++;};
   im.src=url;
@@ -58,10 +60,9 @@ const ART={
 };
 const PROP={K:0.32,MAX:40};                // K: depth axis of the spin ellipse; MAX rad/s
 
-/** True when this style should be drawn from sprites (beta flag on, all images loaded). */
+/** True when this style should be drawn from sprites (sprites flag on, all images loaded). */
 export function hasSprites(style){
-  if(beta===null)beta=store.get('skysiege_beta')==='1';
-  return beta&&!!ART[style]&&total>0&&loaded===total;
+  return ON&&!!ART[style]&&total>0&&loaded===total;
 }
 
 function img(k,dmg){return dmg&&DARK[k]?DARK[k]:IMG[k];}
