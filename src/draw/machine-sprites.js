@@ -11,12 +11,16 @@ import bladeUrl from '../assets/classic/blade.webp';
 import stoneUrl from '../assets/classic/stone.webp';
 import greekUrl from '../assets/classic/greek.webp';
 import armorUrl from '../assets/classic/armor.webp';
+import crossbowUrl from '../assets/classic/crossbow.webp';
 import falconHullUrl from '../assets/falcon/hull.webp';
 import falconWingUrl from '../assets/falcon/wing.webp';
 import galleonHullUrl from '../assets/galleon/hull.webp';
 import galleonWingUrl from '../assets/galleon/wing.webp';
 import batHullUrl from '../assets/bat/hull.webp';
 import batWingUrl from '../assets/bat/wing.webp';
+import batUpWingUrl from '../assets/bat/upwing.webp';
+import batLowWingUrl from '../assets/bat/lowwing.webp';
+import falconLowWingUrl from '../assets/falcon/lowwing.webp';
 import airHullUrl from '../assets/airship/hull.webp';
 import airWingUrl from '../assets/airship/wing.webp';
 import airBalloonUrl from '../assets/airship/balloon.webp';
@@ -35,27 +39,57 @@ function darken(im,a){
   x.fillStyle=`rgba(30,18,6,${a})`;x.fillRect(0,0,c.width,c.height);return c;
 }
 load('hull',hullUrl,0.3);load('wing',wingUrl,0.25);load('blade',bladeUrl,0.55);
-load('stone',stoneUrl,0.35);load('greek',greekUrl,0.35);load('armor',armorUrl);
+load('stone',stoneUrl,0.35);load('greek',greekUrl,0.35);load('armor',armorUrl);load('crossbow',crossbowUrl);
 load('falconHull',falconHullUrl,0.3);load('falconWing',falconWingUrl,0.25);
 load('galleonHull',galleonHullUrl,0.3);load('galleonWing',galleonWingUrl,0.25);
 load('batHull',batHullUrl,0.3);load('batWing',batWingUrl,0.25);
+load('batUp',batUpWingUrl,0.3);load('batLow',batLowWingUrl,0.3);load('falconLow',falconLowWingUrl,0.3);
 load('airHull',airHullUrl,0.3);load('airWing',airWingUrl,0.25);load('airBalloon',airBalloonUrl,0.25);
 
 // Layout per style, in machine units. hull: top-left corner and width (height follows the
 // image). wing: centre x and width; kept clear of the pilot so the struts never hide him.
 // bal: the airship's gas bag (top-left corner and width) and its ropes [x,y on the bag, x,y on the gondola].
+// bow: [x,y] of the crossbow at the bow, y on the deck line (the post is cut there).
 // wbase: y of the deck the lowest wing is strutted to (default: only a lone wing, 14 below it).
 // wy: [y of a lone wing, y of the lowest of a stack, gap between stacked wings].
 // wt: how much thicker than the image the wing is drawn (thin airfoils need it at phone size).
 // prop: x of the hubs and of the stern bracket. rack: beam ends, post tops, beam height.
 const ART={
-  classic:{hull:'hull',wing:'wing',hx:-37,hy:-11,hw:82,wcx:20,ww:40,wt:1.7,wy:[-20,2,9.5],px:-40,stern:-34,rack:{x0:-17,x1:16,top:7.5,y:11.5}},
-  falcon:{hull:'falconHull',wing:'falconWing',hx:-40,hy:-11.7,hw:86,wcx:-14,ww:36,wt:1.7,wy:[-20,2,9.5],px:-43,stern:-37,rack:{x0:-17,x1:16,top:4,y:8.5}},
-  galleon:{hull:'galleonHull',wing:'galleonWing',hx:-43,hy:-16,hw:86,wcx:-6,ww:46,wt:1.3,wy:[-18,-9,9],px:-46,stern:-41,rack:{x0:-17,x1:16,top:9,y:14}},
-  bat:{hull:'batHull',wing:'batWing',hx:-43,hy:-12,hw:86,wcx:16,ww:42,wt:0.6,wy:[-17,-10,9],px:-46,stern:-41,rack:{x0:-17,x1:16,top:7,y:12}},
-  airship:{hull:'airHull',wing:'airWing',hx:-30,hy:-9,hw:66,wcx:-6,ww:24,wt:1.4,wy:[-12,-11,4.5],wbase:-4.5,px:-37,stern:-29,rack:{x0:-17,x1:16,top:6,y:11},
+  classic:{bow:[31,-6],hull:'hull',wing:'wing',hx:-37,hy:-11,hw:82,wcx:-4,ww:40,wt:1.4,wy:[-19,-12,9],wbase:-5,px:-40,stern:-34,rack:{x0:-17,x1:16,top:7.5,y:11.5}},
+  falcon:{bow:[24,-5],hull:'falconHull',wing:'falconWing',hx:-40,hy:-11.7,hw:86,wcx:-14,ww:36,wt:1.7,wy:[-20,2,9.5],px:-43,stern:-37,rack:{x0:-17,x1:16,top:4,y:8.5}},
+  galleon:{bow:[31,-10],hull:'galleonHull',wing:'galleonWing',hx:-43,hy:-16,hw:86,wcx:-6,ww:46,wt:1.3,wy:[-18,-9,9],px:-46,stern:-41,rack:{x0:-17,x1:16,top:9,y:14}},
+  bat:{bow:[29,-7],hull:'batHull',wing:'batWing',hx:-43,hy:-12,hw:86,wcx:-2,ww:42,wt:0.6,wy:[-17,-11,9],wbase:-7,px:-46,stern:-41,rack:{x0:-17,x1:16,top:7,y:12}},
+  airship:{bow:[22,-4],hull:'airHull',wing:'airWing',hx:-30,hy:-9,hw:66,wcx:-6,ww:24,wt:1.4,wy:[-12,-11,4.5],wbase:-4.5,px:-37,stern:-29,rack:{x0:-17,x1:16,top:6,y:11},
     bal:{x:-60,y:-61,w:112,ropes:[[-14,-28,-9.5,-5],[17,-28,12.9,-5],[-30,-31,-27,-4],[33,-31,30,-4]]}},
 };
+// Signature wings: styles listed here draw their own wing shapes instead of the stacked
+// airfoil. Each piece: image key, root point in the image (fraction of its size), where that
+// root sits on the machine, width, flip, and whether it goes behind the hull.
+// Pieces are added in order as the wing count grows; extra ones sit behind and in shade.
+const SIG={
+  falcon:[
+    {k:'falconLow',rx:0.95,ry:0.25,x:8,y:-2,w:44},
+    {k:'falconLow',rx:0.95,ry:0.25,x:0,y:-8,w:40,back:true},
+    {k:'falconLow',rx:0.95,ry:0.25,x:-8,y:-14,w:36,back:true},
+    {k:'falconLow',rx:0.95,ry:0.25,x:-16,y:-20,w:32,back:true},
+  ],
+  bat:[
+    {k:'batUp',rx:0.945,ry:0.91,x:-8,y:-2,w:44,back:true,lit:true},
+    {k:'batLow',rx:0.95,ry:0.25,x:2,y:3,w:42},
+    {k:'batUp',rx:0.945,ry:0.91,x:-30,y:0,w:34,back:true,keep:true},
+    {k:'batLow',rx:0.95,ry:0.25,x:-12,y:10,w:36,back:true,keep:true},
+  ],
+};
+function drawSig(c,set,n,back,damaged){
+  // back pieces: the extra ones (in shade) first, then the lit ones
+  const list=set.slice(0,Math.max(1,Math.min(n,4))).map((P,i)=>({P,i})).filter(o=>!!o.P.back===back);
+  list.sort((a,b)=>(a.P.lit?1:0)-(b.P.lit?1:0)||b.i-a.i);
+  for(const {P,i} of list){
+    const h=hOf(P.k,P.w), shade=i>0&&!P.lit&&!P.keep&&back;   // keep: already dark, shading would hide it
+    c.drawImage(shade?DARK[P.k]:img(P.k,damaged),P.x-P.rx*P.w,P.y-P.ry*h,P.w,h);
+  }
+}
+
 const PROP={K:0.32,MAX:40};                // K: depth axis of the spin ellipse; MAX rad/s
 
 /** True when this style should be drawn from sprites (beta flag on, all images loaded). */
@@ -67,21 +101,20 @@ export function hasSprites(style){
 function img(k,dmg){return dmg&&DARK[k]?DARK[k]:IMG[k];}
 function hOf(k,w){const im=IMG[k];return w*im.naturalHeight/im.naturalWidth;}
 
-/**
- * Draws a sprite machine. `mid` runs after the hull and armor, before the wings
- * (crossbows sit on deck, under the lower wing).
- */
-export function drawSpriteMachine(c,b,t,bombsLoaded,damaged,mid){
+/** Draws a sprite machine. */
+export function drawSpriteMachine(c,b,t,bombsLoaded,damaged){
   const A=ART[b.style||'classic'], greek=b.bombType==='greek';
   const n=Math.min(bombsLoaded,12);
   if(A.bal)drawBalloon(c,A.bal,damaged);
+  const sig=SIG[b.style];
+  if(sig)drawSig(c,sig,b.wings,true,damaged);
   // hull (pilot included in the sprite), then the bomb rack under it
   c.drawImage(img(A.hull,damaged),A.hx,A.hy,A.hw,hOf(A.hull,A.hw));
   const bombs=[];for(let i=0;i<n;i++)bombs.push({row:i%2,col:i>>1});
   drawRack(c,A.rack,bombs,greek);
   drawArmor(c,b.armor);
-  mid();
-  drawWings(c,A,b.wings,damaged);
+  if(sig)drawSig(c,sig,b.wings,false,damaged);else drawWings(c,A,b.wings,damaged);
+  drawBow(c,A.bow,b.crossbows||0);
   drawProps(c,A,b,t,damaged);
 }
 
@@ -106,6 +139,17 @@ function drawBalloon(c,B,damaged){
   for(const [x0,y0,x1,y1] of B.ropes){c.moveTo(x0,y0);c.lineTo(x1,y1);}
   c.stroke();
   c.drawImage(img('airBalloon',damaged),B.x,B.y,B.w,hOf('airBalloon',B.w));
+}
+
+// The repeating crossbow, at the bow. Only one is ever drawn (a second one adds fire rate,
+// not looks). It goes on top of the wings so they never hide it, and is cut at the deck line
+// so its swivel post looks sunk into the hull.
+function drawBow(c,B,n){
+  if(n<=0)return;
+  const w=17, h=hOf('crossbow',w);
+  c.save();c.beginPath();c.rect(B[0]-w,B[1]-h*2,w*2,h*2);c.clip();
+  c.drawImage(IMG.crossbow,B[0]-w/2,B[1]-h*0.72,w,h);
+  c.restore();
 }
 
 function drawArmor(c,n){
